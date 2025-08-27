@@ -76,9 +76,43 @@ A comprehensive, web-based Telegram bot hosting platform that allows you to crea
 
 2. **Set environment variables**
    - Add the variables from `.env.example` to your Railway project
+   - Set `NODE_ENV=production`
 
 3. **Deploy**
    - Railway will automatically detect the configuration and deploy
+   - The build process will install dependencies and build the React app
+
+### Troubleshooting Railway Deployment
+
+If you encounter build errors:
+
+1. **Check the build logs** in Railway dashboard
+2. **Ensure all files are committed** to your repository
+3. **Verify environment variables** are set correctly
+4. **Try the alternative deployment methods** below
+
+### Alternative Deployment Methods
+
+#### Docker Deployment
+```bash
+# Build the Docker image
+docker build -t telegram-bot-platform .
+
+# Run the container
+docker run -p 3001:3001 telegram-bot-platform
+```
+
+#### Manual Deployment
+```bash
+# Install dependencies
+npm run install:all
+
+# Build the application
+npm run build
+
+# Start the server
+npm start
+```
 
 ## 🎯 Usage
 
