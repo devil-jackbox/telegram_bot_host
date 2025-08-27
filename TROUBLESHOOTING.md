@@ -18,6 +18,19 @@ This error typically occurs during Railway deployment. Here are the most common 
 - Added `build:client` script to package.json
 - Updated Railway configuration to use explicit build commands
 
+#### **Issue: Docker React Build Failure**
+**Symptoms:** `RUN cd client && npm run build` fails with exit code 1
+**Solutions:**
+1. **Use the updated Dockerfile** with better error handling
+2. **Try Dockerfile.simple** for a minimal build process
+3. **Check for missing dependencies** in client/package.json
+4. **Set environment variables** for the build process:
+   ```dockerfile
+   ENV NODE_ENV=production
+   ENV GENERATE_SOURCEMAP=false
+   ENV CI=false
+   ```
+
 #### **Issue: Missing Dependencies**
 **Symptoms:** Build fails during npm install
 **Solution:**
