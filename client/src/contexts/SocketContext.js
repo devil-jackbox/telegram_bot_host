@@ -17,7 +17,12 @@ export const SocketProvider = ({ children }) => {
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    const newSocket = io(process.env.REACT_APP_API_URL || 'http://localhost:3001', {
+    // In production, connect to the same domain
+    const socketUrl = process.env.NODE_ENV === 'production' 
+      ? window.location.origin 
+      : (process.env.REACT_APP_API_URL || 'http://localhost:3001');
+    
+    const newSocket = io(socketUrl, {
       transports: ['websocket', 'polling'],
       timeout: 20000,
     });
