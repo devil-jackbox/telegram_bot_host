@@ -12,11 +12,19 @@ COPY package*.json ./
 COPY client/package*.json ./client/
 
 # Install dependencies
-RUN npm install --omit=dev
-RUN cd client && npm install --omit=dev
+RUN npm install
+RUN cd client && npm install
 
 # Copy all source code
 COPY . .
+
+# Copy pre-built React files if they exist
+RUN if [ -d "react-build" ]; then \
+      echo "Using pre-built React files"; \
+      cp -r react-build client/build; \
+    else \
+      echo "No pre-built files found, will build during Docker build"; \
+    fi
 
 # Create necessary directories
 RUN mkdir -p client/build
