@@ -1,3 +1,13 @@
+[build]
+builder = "nixpacks"
+
+[deploy]
+startCommand = "npm start"
+healthcheckPath = "/health"
+healthcheckTimeout = 100
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
+
 [phases.setup]
 nixPkgs = ["nodejs_18", "python3", "php", "ruby", "go"]
 
@@ -11,6 +21,3 @@ cmds = [
 cmds = [
   "cd client && npm run build"
 ]
-
-[start]
-cmd = "npm start"
