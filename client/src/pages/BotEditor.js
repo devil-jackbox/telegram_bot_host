@@ -233,7 +233,7 @@ const BotEditor = () => {
       {/* Content */}
       {activeTab === 'editor' && (
         <div className="card">
-          <div className="h-96">
+          <div className="h-96 overflow-hidden">
             <Editor
               height="100%"
               language={getLanguage()}
@@ -241,16 +241,49 @@ const BotEditor = () => {
               onChange={setCode}
               theme="vs-dark"
               options={{
-                minimap: { enabled: false },
+                minimap: { enabled: true },
                 fontSize: 14,
                 lineNumbers: 'on',
                 roundedSelection: false,
                 scrollBeyondLastLine: false,
                 automaticLayout: true,
-                wordWrap: 'on',
+                wordWrap: 'off',
                 folding: true,
                 lineDecorationsWidth: 10,
                 lineNumbersMinChars: 3,
+                scrollbar: {
+                  vertical: 'visible',
+                  horizontal: 'visible',
+                  verticalScrollbarSize: 12,
+                  horizontalScrollbarSize: 12,
+                  useShadows: true,
+                },
+                overviewRulerBorder: true,
+                overviewRulerLanes: 3,
+                fixedOverflowWidgets: true,
+                renderWhitespace: 'selection',
+                renderControlCharacters: false,
+                renderLineHighlight: 'all',
+                selectOnLineNumbers: true,
+                glyphMargin: true,
+                useTabStops: false,
+                insertSpaces: true,
+                tabSize: 2,
+                detectIndentation: true,
+                trimAutoWhitespace: true,
+                largeFileOptimizations: true,
+                suggestOnTriggerCharacters: true,
+                acceptSuggestionOnCommitCharacter: true,
+                acceptSuggestionOnEnter: 'on',
+                quickSuggestions: true,
+                quickSuggestionsDelay: 10,
+                parameterHints: {
+                  enabled: true,
+                  cycle: true,
+                },
+                autoIndent: 'full',
+                formatOnPaste: true,
+                formatOnType: true,
               }}
             />
           </div>

@@ -88,10 +88,45 @@
 /* Monaco Editor Customization */
 .monaco-editor {
   @apply rounded-md border border-gray-200;
+  overflow: hidden;
 }
 
 .monaco-editor .margin {
   @apply bg-gray-50;
+}
+
+/* Improved scrollbars for Monaco Editor */
+.monaco-editor .scrollbar .slider {
+  background: rgba(100, 100, 100, 0.4);
+  border-radius: 3px;
+}
+
+.monaco-editor .scrollbar .slider:hover {
+  background: rgba(100, 100, 100, 0.7);
+}
+
+.monaco-editor .scrollbar .slider.active {
+  background: rgba(100, 100, 100, 0.8);
+}
+
+/* Horizontal scrollbar improvements */
+.monaco-editor .scrollbar.horizontal {
+  height: 12px;
+}
+
+.monaco-editor .scrollbar.horizontal .slider {
+  height: 8px;
+  margin: 2px;
+}
+
+/* Vertical scrollbar improvements */
+.monaco-editor .scrollbar.vertical {
+  width: 12px;
+}
+
+.monaco-editor .scrollbar.vertical .slider {
+  width: 8px;
+  margin: 2px;
 }
 
 /* Custom scrollbar */
