@@ -49,17 +49,41 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Simple root endpoint for testing
-app.get('/', (req, res) => {
-  res.json({ 
-    message: 'Telegram Bot Platform API is running - DOCKER DEPLOYMENT',
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    version: '1.0.3',
-    build: 'Docker deployment with pre-built React files',
-    deployment: 'Docker'
-  });
+// Debug endpoint to check build files
+app.get('/debug', (req, res) => {
+  const buildPaths = [
+    path.join(__dirname, 'client/build'),
+    path.join(__dirname, 'react-build'),
+    path.join(__dirname, 'build')
+  ];
+  
+  const debugInfo = {
+    environment: process.env.NODE_ENV || 'development',
+    buildPaths: buildPaths.map(buildPath => ({
+      path: buildPath,
+      exists: fs.existsSync(buildPath),
+      hasIndex: fs.existsSync(path.join(buildPath, 'index.html'))
+    })),
+    currentDir: __dirname,
+    files: fs.readdirSync(__dirname)
+  };
+  
+  res.json(debugInfo);
 });
+
+// Simple root endpoint for testing (only in development)
+if (process.env.NODE_ENV !== 'production') {
+  app.get('/', (req, res) => {
+    res.json({ 
+      message: 'Telegram Bot Platform API is running - DOCKER DEPLOYMENT',
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      version: '1.0.3',
+      build: 'Docker deployment with pre-built React files',
+      deployment: 'Docker'
+    });
+  });
+}
 
 // Initialize bot manager with error handling
 let botManager;
@@ -116,6 +140,7 @@ if (process.env.NODE_ENV === 'production') {
       res.sendFile(indexPath);
     });
     logger.info('Static files configured for production from:', buildPath);
+    logger.info('React app will be served for all routes');
   } else {
     logger.error('React build files not found in any location');
     logger.error('Checked paths:', buildPaths);
