@@ -1,22 +1,49 @@
 # Use Node.js 18 as base image
 FROM node:18-alpine
 
+# Install build dependencies
+RUN apk add --no-cache python3 make g++ git
+
 # Set working directory
 WORKDIR /app
 
-# Copy package files
+# Copy package files first
 COPY package*.json ./
 COPY client/package*.json ./client/
 
 # Install dependencies
-RUN npm install
-RUN cd client && npm install
+RUN npm install --omit=dev
+RUN cd client && npm install --omit=dev
 
-# Copy source code
+# Copy all source code
 COPY . .
 
-# Build the React app
-RUN cd client && npm run build
+# Create necessary directories
+RUN mkdir -p client/build
+
+# Set environment variables for build
+ENV NODE_ENV=production
+ENV GENERATE_SOURCEMAP=false
+ENV CI=false
+
+# Debug: Check what files are present
+RUN echo "=== Checking client directory structure ===" && \
+    ls -la client/src/ && \
+    echo "=== Checking client package.json ===" && \
+    cat client/package.json
+
+# Build the React app with detailed error reporting
+RUN cd client && \
+    echo "=== Starting React build ===" && \
+    npm run build || \
+    (echo "=== Build failed, checking for errors ===" && \
+     echo "=== Node version ===" && node --version && \
+     echo "=== NPM version ===" && npm --version && \
+     echo "=== Available scripts ===" && npm run && \
+     exit 1)
+
+# Verify build was successful
+RUN ls -la client/build/ || echo "Build directory not found"
 
 # Expose port
 EXPOSE 3001
