@@ -6,6 +6,18 @@
 
 This error typically occurs during Railway deployment. Here are the most common causes and solutions:
 
+#### **Issue: npm warn config production Use --omit-dev instead**
+**Symptoms:** Build fails with npm warnings about production config
+**Solution:**
+- Updated build configurations to use `--omit=dev` instead of `--only=production`
+- This is a newer npm syntax that avoids the warnings
+
+#### **Issue: Missing build:client script**
+**Symptoms:** Build fails looking for `npm run build:client`
+**Solution:**
+- Added `build:client` script to package.json
+- Updated Railway configuration to use explicit build commands
+
 #### **Issue: Missing Dependencies**
 **Symptoms:** Build fails during npm install
 **Solution:**
