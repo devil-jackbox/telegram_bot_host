@@ -13,8 +13,8 @@ nixPkgs = ["nodejs_18", "python3", "php", "ruby", "go"]
 
 [phases.install]
 cmds = [
-  "npm install",
-  "cd client && npm install"
+  "npm ci --only=production",
+  "cd client && npm ci --only=production"
 ]
 
 [phases.build]

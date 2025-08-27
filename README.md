@@ -226,6 +226,37 @@ telegram-bot-hosting-platform/
 3. **Set environment variables**
 4. **Deploy automatically**
 
+### Troubleshooting Build Issues
+
+If you encounter "Failed to build an image" errors:
+
+1. **Run the verification script:**
+   ```bash
+   node verify-build.js
+   ```
+
+2. **Check the troubleshooting guide:** `TROUBLESHOOTING.md`
+
+3. **Common solutions:**
+   - Ensure all files are committed to your repository
+   - Set `NODE_ENV=production` in Railway environment variables
+   - Try alternative deployment methods below
+
+### Alternative Deployment Methods
+
+#### Docker Deployment
+```bash
+docker build -t telegram-bot-platform .
+docker run -p 3001:3001 telegram-bot-platform
+```
+
+#### Manual Deployment
+```bash
+npm run install:all
+npm run build
+npm start
+```
+
 ### Other Platforms
 
 The application can be deployed to any Node.js hosting platform:
