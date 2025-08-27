@@ -52,11 +52,12 @@ app.get('/health', (req, res) => {
 // Simple root endpoint for testing
 app.get('/', (req, res) => {
   res.json({ 
-    message: 'Telegram Bot Platform API is running - REBUILD TEST',
+    message: 'Telegram Bot Platform API is running - DOCKER DEPLOYMENT',
     status: 'ok',
     timestamp: new Date().toISOString(),
-    version: '1.0.2',
-    build: 'React build fix applied'
+    version: '1.0.3',
+    build: 'Docker deployment with pre-built React files',
+    deployment: 'Docker'
   });
 });
 
@@ -88,21 +89,36 @@ try {
 
 // Static files (only in production)
 if (process.env.NODE_ENV === 'production') {
-  const buildPath = path.join(__dirname, 'client/build');
-  const indexPath = path.join(buildPath, 'index.html');
+  // Try multiple possible build locations
+  const buildPaths = [
+    path.join(__dirname, 'client/build'),
+    path.join(__dirname, 'react-build'),
+    path.join(__dirname, 'build')
+  ];
   
-  // Check if build files exist
-  if (fs.existsSync(buildPath) && fs.existsSync(indexPath)) {
+  let buildPath = null;
+  let indexPath = null;
+  
+  for (const path of buildPaths) {
+    const indexFile = path.join(path, 'index.html');
+    if (fs.existsSync(path) && fs.existsSync(indexFile)) {
+      buildPath = path;
+      indexPath = indexFile;
+      break;
+    }
+  }
+  
+  if (buildPath && indexPath) {
     app.use(express.static(buildPath));
     
     // Serve React app for all other routes
     app.get('*', (req, res) => {
       res.sendFile(indexPath);
     });
-    logger.info('Static files configured for production');
+    logger.info('Static files configured for production from:', buildPath);
   } else {
-    logger.error('React build files not found. Expected:', buildPath);
-    logger.error('Please ensure the React app was built successfully.');
+    logger.error('React build files not found in any location');
+    logger.error('Checked paths:', buildPaths);
     
     // Fallback: serve a simple HTML page
     app.get('*', (req, res) => {
