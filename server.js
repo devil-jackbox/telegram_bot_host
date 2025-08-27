@@ -99,10 +99,10 @@ if (process.env.NODE_ENV === 'production') {
   let buildPath = null;
   let indexPath = null;
   
-  for (const path of buildPaths) {
-    const indexFile = path.join(path, 'index.html');
-    if (fs.existsSync(path) && fs.existsSync(indexFile)) {
-      buildPath = path;
+  for (const buildPathOption of buildPaths) {
+    const indexFile = path.join(buildPathOption, 'index.html');
+    if (fs.existsSync(buildPathOption) && fs.existsSync(indexFile)) {
+      buildPath = buildPathOption;
       indexPath = indexFile;
       break;
     }
