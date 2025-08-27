@@ -48,7 +48,7 @@ const BotErrors = () => {
   };
 
   const clearErrors = () => {
-    if (confirm('Are you sure you want to clear all errors?')) {
+    if (window.confirm('Are you sure you want to clear all errors?')) {
       setErrors([]);
     }
   };

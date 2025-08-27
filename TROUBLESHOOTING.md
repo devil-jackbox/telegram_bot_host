@@ -31,6 +31,14 @@ This error typically occurs during Railway deployment. Here are the most common 
    ENV CI=false
    ```
 
+#### **Issue: ESLint Errors in React Build**
+**Symptoms:** Build fails with ESLint errors like `Unexpected use of 'confirm' no-restricted-globals`
+**Solutions:**
+1. **Fix the code**: Replace `confirm()` with `window.confirm()`
+2. **Use no-lint build**: `npm run build:no-lint`
+3. **Add ESLint configuration**: Create `.eslintrc.js` with custom rules
+4. **Set environment variable**: `DISABLE_ESLINT_PLUGIN=true`
+
 #### **Issue: Missing Dependencies**
 **Symptoms:** Build fails during npm install
 **Solution:**

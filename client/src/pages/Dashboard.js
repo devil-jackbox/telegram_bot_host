@@ -42,7 +42,7 @@ const Dashboard = () => {
   };
 
   const handleDeleteBot = async (botId) => {
-    if (!confirm('Are you sure you want to delete this bot? This action cannot be undone.')) {
+    if (!window.confirm('Are you sure you want to delete this bot? This action cannot be undone.')) {
       return;
     }
 
