@@ -17,8 +17,10 @@ const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
     origin: "*",
-    methods: ["GET", "POST"]
-  }
+    methods: ["GET", "POST"],
+    credentials: true
+  },
+  allowEIO3: true
 });
 
 // Security middleware
@@ -154,7 +156,7 @@ if (process.env.NODE_ENV === 'production') {
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {
-  logger.info(`Client connected: ${socket.id}`);
+  logger.info(`Client connected: ${socket.id} from ${socket.handshake.address}`);
 
   socket.on('join-bot-room', (botId) => {
     socket.join(`bot-${botId}`);
@@ -166,8 +168,12 @@ io.on('connection', (socket) => {
     logger.info(`Client ${socket.id} left bot room: ${botId}`);
   });
 
-  socket.on('disconnect', () => {
-    logger.info(`Client disconnected: ${socket.id}`);
+  socket.on('disconnect', (reason) => {
+    logger.info(`Client disconnected: ${socket.id}, reason: ${reason}`);
+  });
+
+  socket.on('error', (error) => {
+    logger.error(`Socket error for ${socket.id}:`, error);
   });
 });
 

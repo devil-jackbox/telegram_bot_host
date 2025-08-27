@@ -18,7 +18,9 @@ export const BotProvider = ({ children }) => {
   const [error, setError] = useState(null);
 
   const api = axios.create({
-    baseURL: process.env.REACT_APP_API_URL || 'http://localhost:3001/api',
+    baseURL: process.env.NODE_ENV === 'production' 
+      ? '/api' 
+      : (process.env.REACT_APP_API_URL || 'http://localhost:3001/api'),
     timeout: 10000,
   });
 
