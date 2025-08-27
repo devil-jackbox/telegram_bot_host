@@ -53,6 +53,10 @@ EXPOSE 3001
 # Set environment variables
 ENV NODE_ENV=production
 ENV PORT=3001
+ENV HOST=0.0.0.0
+
+# Create necessary directories
+RUN mkdir -p bots logs
 
 # Start the application
-CMD ["npm", "start"]
+CMD ["./start.sh"]

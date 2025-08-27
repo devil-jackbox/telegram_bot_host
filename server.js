@@ -8,7 +8,6 @@ const rateLimit = require('express-rate-limit');
 const path = require('path');
 const fs = require('fs-extra');
 const { v4: uuidv4 } = require('uuid');
-const BotManager = require('./src/botManager');
 const logger = require('./src/utils/logger');
 
 require('dotenv').config();
@@ -23,7 +22,9 @@ const io = socketIo(server, {
 });
 
 // Security middleware
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: false, // Disable CSP for development
+}));
 app.use(compression());
 app.use(cors());
 
@@ -38,36 +39,64 @@ app.use(limiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Initialize bot manager
-const botManager = new BotManager(io);
-
-// Health check endpoint
+// Health check endpoint (must be first)
 app.get('/health', (req, res) => {
   res.json({ 
     status: 'ok', 
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development'
+    environment: process.env.NODE_ENV || 'development',
+    uptime: process.uptime()
   });
 });
 
-// API Routes
-app.use('/api/bots', require('./src/routes/bots'));
-app.use('/api/files', require('./src/routes/files'));
-app.use('/api/logs', require('./src/routes/logs'));
+// Simple root endpoint for testing
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'Telegram Bot Platform API is running',
+    status: 'ok',
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Initialize bot manager with error handling
+let botManager;
+try {
+  const BotManager = require('./src/botManager');
+  botManager = new BotManager(io);
+  logger.info('BotManager initialized successfully');
+} catch (error) {
+  logger.error('Failed to initialize BotManager:', error);
+  // Continue without bot manager for now
+  botManager = null;
+}
+
+// API Routes with error handling
+try {
+  app.use('/api/bots', require('./src/routes/bots'));
+  app.use('/api/files', require('./src/routes/files'));
+  app.use('/api/logs', require('./src/routes/logs'));
+  logger.info('API routes loaded successfully');
+} catch (error) {
+  logger.error('Failed to load API routes:', error);
+  // Add fallback routes
+  app.use('/api/bots', (req, res) => res.status(503).json({ error: 'API temporarily unavailable' }));
+  app.use('/api/files', (req, res) => res.status(503).json({ error: 'API temporarily unavailable' }));
+  app.use('/api/logs', (req, res) => res.status(503).json({ error: 'API temporarily unavailable' }));
+}
 
 // Static files (only in production)
 if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, 'client/build')));
-  
-  // Serve React app for all other routes
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'client/build', 'index.html'));
-  });
-} else {
-  // Development: serve a simple message
-  app.get('/', (req, res) => {
-    res.json({ message: 'Telegram Bot Platform API is running' });
-  });
+  try {
+    app.use(express.static(path.join(__dirname, 'client/build')));
+    
+    // Serve React app for all other routes
+    app.get('*', (req, res) => {
+      res.sendFile(path.join(__dirname, 'client/build', 'index.html'));
+    });
+    logger.info('Static files configured for production');
+  } catch (error) {
+    logger.error('Failed to configure static files:', error);
+  }
 }
 
 // Socket.IO connection handling
@@ -97,15 +126,36 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 3001;
 
-server.listen(PORT, () => {
+// Start server with error handling
+server.listen(PORT, '0.0.0.0', () => {
   logger.info(`Server running on port ${PORT}`);
   logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  logger.info(`Health check available at: http://localhost:${PORT}/health`);
+});
+
+// Handle server errors
+server.on('error', (error) => {
+  logger.error('Server error:', error);
+  process.exit(1);
 });
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
   logger.info('SIGTERM received, shutting down gracefully');
-  botManager.stopAllBots();
+  if (botManager) {
+    botManager.stopAllBots();
+  }
+  server.close(() => {
+    logger.info('Process terminated');
+    process.exit(0);
+  });
+});
+
+process.on('SIGINT', () => {
+  logger.info('SIGINT received, shutting down gracefully');
+  if (botManager) {
+    botManager.stopAllBots();
+  }
   server.close(() => {
     logger.info('Process terminated');
     process.exit(0);

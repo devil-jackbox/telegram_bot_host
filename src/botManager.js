@@ -22,26 +22,39 @@ class BotManager {
 
   async loadExistingBots() {
     try {
+      // Check if bots directory exists, create if not
+      if (!await fs.pathExists(this.botsDir)) {
+        await fs.ensureDir(this.botsDir);
+        logger.info('Created bots directory');
+        return;
+      }
+
       const botDirs = await fs.readdir(this.botsDir);
       for (const botDir of botDirs) {
-        const botPath = path.join(this.botsDir, botDir);
-        const configPath = path.join(botPath, 'config.json');
-        
-        if (await fs.pathExists(configPath)) {
-          const config = await fs.readJson(configPath);
-          this.bots.set(botDir, config);
-          this.botLogs.set(botDir, []);
-          this.botErrors.set(botDir, []);
+        try {
+          const botPath = path.join(this.botsDir, botDir);
+          const configPath = path.join(botPath, 'config.json');
           
-          // Auto-start bots if they were running before
-          if (config.autoStart) {
-            this.startBot(botDir);
+          if (await fs.pathExists(configPath)) {
+            const config = await fs.readJson(configPath);
+            this.bots.set(botDir, config);
+            this.botLogs.set(botDir, []);
+            this.botErrors.set(botDir, []);
+            
+            // Don't auto-start bots in production to avoid issues
+            if (config.autoStart && process.env.NODE_ENV !== 'production') {
+              this.startBot(botDir);
+            }
           }
+        } catch (botError) {
+          logger.error(`Error loading bot ${botDir}:`, botError);
+          // Continue loading other bots
         }
       }
       logger.info(`Loaded ${this.bots.size} existing bots`);
     } catch (error) {
       logger.error('Error loading existing bots:', error);
+      // Don't throw error, just log it
     }
   }
 
