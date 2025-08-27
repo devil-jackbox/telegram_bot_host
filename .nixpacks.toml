@@ -1,0 +1,11 @@
+[phases.setup]
+nixPkgs = ["nodejs", "python3", "php", "ruby", "go"]
+
+[phases.install]
+cmds = ["npm run install:all"]
+
+[phases.build]
+cmds = ["npm run build"]
+
+[start]
+cmd = "npm start"
