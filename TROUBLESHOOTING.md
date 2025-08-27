@@ -39,6 +39,15 @@ This error typically occurs during Railway deployment. Here are the most common 
 3. **Add ESLint configuration**: Create `.eslintrc.js` with custom rules
 4. **Set environment variable**: `DISABLE_ESLINT_PLUGIN=true`
 
+#### **Issue: Health Check Failure**
+**Symptoms:** `1/1 replicas never became healthy! Healthcheck failed!`
+**Solutions:**
+1. **Check server startup**: Ensure server starts without errors
+2. **Verify health endpoint**: Test `/health` endpoint manually
+3. **Check port binding**: Ensure server binds to `0.0.0.0:PORT`
+4. **Review logs**: Check application logs for startup errors
+5. **Use startup script**: Use `start.sh` for proper initialization
+
 #### **Issue: Missing Dependencies**
 **Symptoms:** Build fails during npm install
 **Solution:**
