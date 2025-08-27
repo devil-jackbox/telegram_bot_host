@@ -52,10 +52,11 @@ app.get('/health', (req, res) => {
 // Simple root endpoint for testing
 app.get('/', (req, res) => {
   res.json({ 
-    message: 'Telegram Bot Platform API is running - UPDATED',
+    message: 'Telegram Bot Platform API is running - REBUILD TEST',
     status: 'ok',
     timestamp: new Date().toISOString(),
-    version: '1.0.1'
+    version: '1.0.2',
+    build: 'React build fix applied'
   });
 });
 
