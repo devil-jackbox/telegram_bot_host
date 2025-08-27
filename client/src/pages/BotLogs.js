@@ -51,7 +51,7 @@ const BotLogs = () => {
   };
 
   const clearLogs = () => {
-    if (confirm('Are you sure you want to clear all logs?')) {
+    if (window.confirm('Are you sure you want to clear all logs?')) {
       setLogs([]);
     }
   };
