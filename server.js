@@ -86,16 +86,26 @@ try {
 
 // Static files (only in production)
 if (process.env.NODE_ENV === 'production') {
-  try {
-    app.use(express.static(path.join(__dirname, 'client/build')));
+  const buildPath = path.join(__dirname, 'client/build');
+  const indexPath = path.join(buildPath, 'index.html');
+  
+  // Check if build files exist
+  if (fs.existsSync(buildPath) && fs.existsSync(indexPath)) {
+    app.use(express.static(buildPath));
     
     // Serve React app for all other routes
     app.get('*', (req, res) => {
-      res.sendFile(path.join(__dirname, 'client/build', 'index.html'));
+      res.sendFile(indexPath);
     });
     logger.info('Static files configured for production');
-  } catch (error) {
-    logger.error('Failed to configure static files:', error);
+  } else {
+    logger.error('React build files not found. Expected:', buildPath);
+    logger.error('Please ensure the React app was built successfully.');
+    
+    // Fallback: serve a simple HTML page
+    app.get('*', (req, res) => {
+      res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    });
   }
 }
 
