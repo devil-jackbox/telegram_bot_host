@@ -2,7 +2,17 @@ const express = require('express');
 const router = express.Router();
 const fs = require('fs-extra');
 const path = require('path');
-const { botManager } = require('../server');
+const BotManager = require('../botManager');
+const logger = require('../utils/logger');
+
+// Create bot manager instance
+let botManager;
+try {
+  botManager = new BotManager();
+} catch (error) {
+  logger.error('Failed to initialize bot manager:', error);
+  botManager = null;
+}
 
 // Get bot file content
 router.get('/:botId', async (req, res) => {
