@@ -12,10 +12,17 @@ import {
   Activity,
   Clock,
   Maximize2,
-  Minimize2
+  Minimize2,
+  Plus,
+  Trash2,
+  Copy,
+  RefreshCw,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { useBots } from '../contexts/BotContext';
 import { useSocket } from '../contexts/SocketContext';
+import { toast } from 'react-hot-toast';
 
 const BotEditor = () => {
   const { botId } = useParams();
@@ -31,6 +38,11 @@ const BotEditor = () => {
   const [logs, setLogs] = useState([]);
   const [errors, setErrors] = useState([]);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [environmentVariables, setEnvironmentVariables] = useState([
+    { key: 'BOT_TOKEN', value: '', isSecret: true },
+    { key: 'NODE_ENV', value: 'production', isSecret: false }
+  ]);
+  const [showSecrets, setShowSecrets] = useState(false);
 
   useEffect(() => {
     if (botId) {
@@ -98,49 +110,52 @@ const BotEditor = () => {
   }, [activeTab]);
 
   const loadBotData = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      
-      // First try to find bot in context
       let currentBot = bots.find(b => b.id === botId);
       
-      // If not found in context, fetch from server
       if (!currentBot) {
-        console.log('Bot not found in context, fetching from server...');
-        try {
-          currentBot = await getBot(botId);
-          setBot(currentBot);
-        } catch (error) {
-          console.error('Failed to fetch bot from server:', error);
-          return;
-        }
-      } else {
-        setBot(currentBot);
+        currentBot = await getBot(botId);
       }
-
-      // Load bot file
-      const fileData = await getBotFile(botId);
-      setCode(fileData.content || '');
-      setOriginalCode(fileData.content || '');
       
+      if (currentBot) {
+        setBot(currentBot);
+        
+        // Load bot code
+        const botCode = await getBotFile(botId);
+        setCode(botCode);
+        setOriginalCode(botCode);
+        
+        // Load environment variables if they exist
+        if (currentBot.environmentVariables) {
+          setEnvironmentVariables(currentBot.environmentVariables);
+        } else {
+          // Set default environment variables
+          setEnvironmentVariables([
+            { key: 'BOT_TOKEN', value: currentBot.token || '', isSecret: true },
+            { key: 'NODE_ENV', value: 'production', isSecret: false }
+          ]);
+        }
+      }
     } catch (error) {
       console.error('Failed to load bot data:', error);
+      toast.error('Failed to load bot data');
     } finally {
       setLoading(false);
     }
   };
 
   const handleSave = async () => {
-    if (code === originalCode) {
-      return; // No changes
-    }
-
+    if (code === originalCode) return;
+    
     setSaving(true);
     try {
       await updateBotFile(botId, code);
       setOriginalCode(code);
+      toast.success('Code saved successfully!');
     } catch (error) {
-      console.error('Failed to save:', error);
+      console.error('Failed to save code:', error);
+      toast.error('Failed to save code');
     } finally {
       setSaving(false);
     }
@@ -148,32 +163,42 @@ const BotEditor = () => {
 
   const handleStart = async () => {
     try {
+      // Update bot with environment variables before starting
+      await updateBot(botId, { environmentVariables });
+      
+      setBot(prevBot => ({ ...prevBot, status: 'starting' }));
       await startBot(botId);
-      // Optimistic local status
-      setBot(prev => prev ? { ...prev, status: 'running' } : prev);
+      toast.success('Bot started successfully!');
     } catch (error) {
       console.error('Failed to start bot:', error);
+      toast.error('Failed to start bot');
+      setBot(prevBot => ({ ...prevBot, status: 'stopped' }));
     }
   };
 
   const handleStop = async () => {
-    try {
-      await stopBot(botId);
-      // Optimistic local status
-      setBot(prev => prev ? { ...prev, status: 'stopped' } : prev);
-    } catch (error) {
-      console.error('Failed to stop bot:', error);
+    if (window.confirm('Are you sure you want to stop this bot?')) {
+      try {
+        setBot(prevBot => ({ ...prevBot, status: 'stopping' }));
+        await stopBot(botId);
+        toast.success('Bot stopped successfully!');
+      } catch (error) {
+        console.error('Failed to stop bot:', error);
+        toast.error('Failed to stop bot');
+        setBot(prevBot => ({ ...prevBot, status: 'running' }));
+      }
     }
   };
 
   const handleRestart = async () => {
     try {
-      await stopBot(botId);
+      await handleStop();
       setTimeout(async () => {
-        await startBot(botId);
+        await handleStart();
       }, 1000);
     } catch (error) {
       console.error('Failed to restart bot:', error);
+      toast.error('Failed to restart bot');
     }
   };
 
@@ -181,18 +206,69 @@ const BotEditor = () => {
     setIsFullscreen(!isFullscreen);
   };
 
-  const getLanguage = () => 'javascript';
+  const getLanguage = () => {
+    return 'javascript';
+  };
 
   const getStatusBadge = () => {
-    if (!bot) return null;
-    
-    if (bot.status === 'running') {
-      return <span className="badge-success">Running</span>;
+    const statusColors = {
+      running: 'bg-green-100 text-green-800',
+      stopped: 'bg-gray-100 text-gray-800',
+      starting: 'bg-yellow-100 text-yellow-800',
+      stopping: 'bg-yellow-100 text-yellow-800',
+      error: 'bg-red-100 text-red-800'
+    };
+
+    return (
+      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[bot.status] || statusColors.stopped}`}>
+        <Activity size={12} className="mr-1" />
+        {bot.status}
+      </span>
+    );
+  };
+
+  // Environment Variables Functions
+  const addEnvironmentVariable = () => {
+    setEnvironmentVariables([...environmentVariables, { key: '', value: '', isSecret: false }]);
+  };
+
+  const removeEnvironmentVariable = (index) => {
+    setEnvironmentVariables(environmentVariables.filter((_, i) => i !== index));
+  };
+
+  const updateEnvironmentVariable = (index, field, value) => {
+    const updated = [...environmentVariables];
+    updated[index] = { ...updated[index], [field]: value };
+    setEnvironmentVariables(updated);
+  };
+
+  const saveEnvironmentVariables = async () => {
+    try {
+      await updateBot(botId, { environmentVariables });
+      toast.success('Environment variables saved!');
+    } catch (error) {
+      console.error('Failed to save environment variables:', error);
+      toast.error('Failed to save environment variables');
     }
-    if (bot.status === 'error') {
-      return <span className="badge-error">Error</span>;
+  };
+
+  // Error Functions
+  const clearErrors = () => {
+    setErrors([]);
+    toast.success('Errors cleared');
+  };
+
+  const copyError = (error) => {
+    navigator.clipboard.writeText(error);
+    toast.success('Error copied to clipboard');
+  };
+
+  const formatError = (error) => {
+    // Try to parse and format error messages
+    if (typeof error === 'string') {
+      return error;
     }
-    return <span className="badge-warning">Stopped</span>;
+    return JSON.stringify(error, null, 2);
   };
 
   if (loading) {
@@ -277,6 +353,28 @@ const BotEditor = () => {
             Code Editor
           </button>
           <button
+            onClick={() => setActiveTab('environment')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'environment'
+                ? 'border-primary-500 text-primary-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            <Settings size={16} className="inline mr-2" />
+            Environment Variables
+          </button>
+          <button
+            onClick={() => setActiveTab('errors')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'errors'
+                ? 'border-primary-500 text-primary-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            <AlertTriangle size={16} className="inline mr-2" />
+            Errors ({errors.length})
+          </button>
+          <button
             onClick={() => setActiveTab('settings')}
             className={`py-2 px-1 border-b-2 font-medium text-sm ${
               activeTab === 'settings'
@@ -358,6 +456,140 @@ const BotEditor = () => {
         </div>
       )}
 
+      {activeTab === 'environment' && (
+        <div className="card p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="text-lg font-medium text-gray-900">Environment Variables</h3>
+              <p className="text-sm text-gray-600">Configure environment variables for your bot</p>
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setShowSecrets(!showSecrets)}
+                className="btn-secondary"
+              >
+                {showSecrets ? <EyeOff size={16} /> : <Eye size={16} />}
+                {showSecrets ? 'Hide' : 'Show'} Secrets
+              </button>
+              <button
+                onClick={addEnvironmentVariable}
+                className="btn-primary"
+              >
+                <Plus size={16} />
+                Add Variable
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            {environmentVariables.map((envVar, index) => (
+              <div key={index} className="flex items-center space-x-3 p-4 border border-gray-200 rounded-lg">
+                <div className="flex-1">
+                  <input
+                    type="text"
+                    placeholder="Variable name (e.g., API_KEY)"
+                    value={envVar.key}
+                    onChange={(e) => updateEnvironmentVariable(index, 'key', e.target.value)}
+                    className="input mb-2"
+                  />
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type={showSecrets || !envVar.isSecret ? "text" : "password"}
+                      placeholder="Variable value"
+                      value={envVar.value}
+                      onChange={(e) => updateEnvironmentVariable(index, 'value', e.target.value)}
+                      className="input flex-1"
+                    />
+                    <button
+                      onClick={() => updateEnvironmentVariable(index, 'isSecret', !envVar.isSecret)}
+                      className={`px-3 py-2 text-sm rounded-md ${
+                        envVar.isSecret 
+                          ? 'bg-red-100 text-red-700 hover:bg-red-200' 
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      {envVar.isSecret ? 'Secret' : 'Public'}
+                    </button>
+                  </div>
+                </div>
+                <button
+                  onClick={() => removeEnvironmentVariable(index)}
+                  className="text-red-600 hover:text-red-800 p-2"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-6 flex justify-end">
+            <button
+              onClick={saveEnvironmentVariables}
+              className="btn-primary"
+            >
+              <Save size={16} />
+              Save Environment Variables
+            </button>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'errors' && (
+        <div className="card p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="text-lg font-medium text-gray-900">Bot Errors</h3>
+              <p className="text-sm text-gray-600">Real-time error logs and debugging information</p>
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={clearErrors}
+                className="btn-secondary"
+              >
+                <RefreshCw size={16} />
+                Clear Errors
+              </button>
+            </div>
+          </div>
+
+          {errors.length === 0 ? (
+            <div className="text-center py-12">
+              <AlertTriangle size={48} className="mx-auto text-green-500 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No Errors</h3>
+              <p className="text-gray-600">Your bot is running without any errors!</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {errors.map((error, index) => (
+                <div key={index} className="border border-red-200 rounded-lg p-4 bg-red-50">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-2">
+                      <AlertTriangle size={16} className="text-red-600" />
+                      <span className="text-sm font-medium text-red-800">
+                        Error #{index + 1}
+                      </span>
+                      <span className="text-xs text-red-600">
+                        {new Date().toLocaleTimeString()}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => copyError(formatError(error))}
+                      className="text-red-600 hover:text-red-800 p-1"
+                      title="Copy error"
+                    >
+                      <Copy size={14} />
+                    </button>
+                  </div>
+                  <pre className="text-sm text-red-700 bg-red-100 p-3 rounded overflow-x-auto">
+                    {formatError(error)}
+                  </pre>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {activeTab === 'settings' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="card p-6">
@@ -416,8 +648,10 @@ const BotEditor = () => {
                       token: bot.token,
                       autoStart: bot.autoStart
                     });
+                    toast.success('Bot settings saved!');
                   } catch (error) {
                     console.error('Failed to update bot:', error);
+                    toast.error('Failed to save bot settings');
                   }
                 }}
                 className="btn-primary"
