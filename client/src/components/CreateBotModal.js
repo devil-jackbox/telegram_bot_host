@@ -6,18 +6,14 @@ const CreateBotModal = ({ isOpen, onClose }) => {
   const [formData, setFormData] = useState({
     name: '',
     token: '',
-    language: 'javascript',
     code: '',
     autoStart: false
   });
-  const [languages, setLanguages] = useState([{ id: 'javascript', name: 'JavaScript', extension: 'js' }]);
+  const [languages, setLanguages] = useState([]);
   const [loading, setLoading] = useState(false);
   const { createBot, getSupportedLanguages } = useBots();
 
-  useEffect(() => {
-    // Languages fixed to JavaScript only
-    setLanguages([{ id: 'javascript', name: 'JavaScript', extension: 'js' }]);
-  }, [isOpen]);
+  useEffect(() => {}, [isOpen]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -37,7 +33,6 @@ const CreateBotModal = ({ isOpen, onClose }) => {
     setFormData({
       name: '',
       token: '',
-      language: 'javascript',
       code: '',
       autoStart: false
     });
@@ -113,24 +108,7 @@ const CreateBotModal = ({ isOpen, onClose }) => {
                 </p>
               </div>
 
-              {/* Programming Language */}
-              <div>
-                <label htmlFor="language" className="block text-sm font-medium text-gray-700">
-                  Programming Language
-                </label>
-                <select
-                  id="language"
-                  value={formData.language}
-                  onChange={(e) => setFormData({ ...formData, language: e.target.value })}
-                  className="input mt-1"
-                >
-                  {languages.map((lang) => (
-                    <option key={lang.id} value={lang.id}>
-                      {lang.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {/* Language removed: JavaScript only */}
 
               {/* Initial Code */}
               <div>
@@ -150,19 +128,7 @@ const CreateBotModal = ({ isOpen, onClose }) => {
                 </p>
               </div>
 
-              {/* Auto Start */}
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="autoStart"
-                  checked={formData.autoStart}
-                  onChange={(e) => setFormData({ ...formData, autoStart: e.target.checked })}
-                  className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-                />
-                <label htmlFor="autoStart" className="ml-2 block text-sm text-gray-900">
-                  Start bot automatically after creation
-                </label>
-              </div>
+              {/* Auto Start removed for simplicity */}
             </form>
           </div>
 

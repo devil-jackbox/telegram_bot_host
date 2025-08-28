@@ -405,19 +405,17 @@ try {
     }
 
     try {
+      // Request graceful shutdown
       childProcess.kill('SIGTERM');
-      // Fallback to SIGKILL if not exited after timeout
-      setTimeout(() => {
-        if (this.botProcesses.has(botId)) {
-          try { childProcess.kill('SIGKILL'); } catch {}
-          this.botProcesses.delete(botId);
-        }
-      }, 3000);
-      this.botProcesses.delete(botId);
-      this.addLog(botId, 'info', 'Bot stopped');
-      if (this.io) {
-        this.io.to(`bot-${botId}`).emit('bot-status', { botId, status: 'stopped' });
+
+      // Wait for process to exit, then emit stopped from the 'close' handler already registered in startBot
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+
+      // If still running, force kill
+      if (this.botProcesses.has(botId)) {
+        try { childProcess.kill('SIGKILL'); } catch {}
       }
+
       return { success: true };
     } catch (error) {
       logger.error(`Error stopping bot ${botId}:`, error);

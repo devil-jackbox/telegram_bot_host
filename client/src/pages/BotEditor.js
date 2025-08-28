@@ -149,6 +149,8 @@ const BotEditor = () => {
   const handleStart = async () => {
     try {
       await startBot(botId);
+      // Optimistic local status
+      setBot(prev => prev ? { ...prev, status: 'running' } : prev);
     } catch (error) {
       console.error('Failed to start bot:', error);
     }
@@ -157,6 +159,8 @@ const BotEditor = () => {
   const handleStop = async () => {
     try {
       await stopBot(botId);
+      // Optimistic local status
+      setBot(prev => prev ? { ...prev, status: 'stopped' } : prev);
     } catch (error) {
       console.error('Failed to stop bot:', error);
     }
