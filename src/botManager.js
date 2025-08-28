@@ -257,9 +257,9 @@ try {
         if (hasPkg && !hasNodeModules) {
           this.addLog(bot.id, 'info', 'Installing Node.js dependencies...');
           await new Promise((resolve, reject) => {
-            const install = spawn('npm', ['install', '--omit=dev'], { cwd: botDir, env: { ...(process.env||{}) } });
+            const install = spawn('npm', ['install', '--omit=dev', '--no-audit', '--no-fund'], { cwd: botDir, env: { ...(process.env||{}) } });
             install.stdout.on('data', d => this.addLog(bot.id, 'info', d.toString()));
-            install.stderr.on('data', d => this.addError(bot.id, d.toString()));
+            install.stderr.on('data', d => this.addLog(bot.id, 'info', d.toString()));
             install.on('close', code => code === 0 ? resolve() : reject(new Error(`npm install exited with ${code}`)));
             install.on('error', err => reject(err));
           });
@@ -274,7 +274,7 @@ try {
         if (hasReq) {
           this.addLog(bot.id, 'info', 'Installing Python dependencies...');
           await new Promise((resolve, reject) => {
-            const pip = spawn('pip', ['install', '-r', 'requirements.txt', '--no-cache-dir'], { cwd: botDir, env: { ...(process.env||{}) } });
+            const pip = spawn('python3', ['-m', 'pip', 'install', '-r', 'requirements.txt', '--no-cache-dir'], { cwd: botDir, env: { ...(process.env||{}) } });
             pip.stdout.on('data', d => this.addLog(bot.id, 'info', d.toString()));
             pip.stderr.on('data', d => this.addError(bot.id, d.toString()));
             pip.on('close', code => code === 0 ? resolve() : reject(new Error(`pip install exited with ${code}`)));
@@ -399,16 +399,18 @@ try {
   }
 
   async stopBot(botId) {
-    const process = this.botProcesses.get(botId);
-    if (!process) {
+    const childProcess = this.botProcesses.get(botId);
+    if (!childProcess) {
       return { success: false, error: 'Bot is not running' };
     }
 
     try {
-      process.kill('SIGTERM');
+      childProcess.kill('SIGTERM');
       this.botProcesses.delete(botId);
       this.addLog(botId, 'info', 'Bot stopped');
-      this.io.to(`bot-${botId}`).emit('bot-status', { botId, status: 'stopped' });
+      if (this.io) {
+        this.io.to(`bot-${botId}`).emit('bot-status', { botId, status: 'stopped' });
+      }
       return { success: true };
     } catch (error) {
       logger.error(`Error stopping bot ${botId}:`, error);
