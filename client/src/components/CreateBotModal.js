@@ -10,24 +10,14 @@ const CreateBotModal = ({ isOpen, onClose }) => {
     code: '',
     autoStart: false
   });
-  const [languages, setLanguages] = useState([]);
+  const [languages, setLanguages] = useState([{ id: 'javascript', name: 'JavaScript', extension: 'js' }]);
   const [loading, setLoading] = useState(false);
   const { createBot, getSupportedLanguages } = useBots();
 
   useEffect(() => {
-    if (isOpen) {
-      loadLanguages();
-    }
+    // Languages fixed to JavaScript only
+    setLanguages([{ id: 'javascript', name: 'JavaScript', extension: 'js' }]);
   }, [isOpen]);
-
-  const loadLanguages = async () => {
-    try {
-      const langs = await getSupportedLanguages();
-      setLanguages(langs);
-    } catch (error) {
-      console.error('Failed to load languages:', error);
-    }
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
