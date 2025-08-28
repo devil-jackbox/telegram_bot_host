@@ -16,8 +16,15 @@ class BotManager {
     // Ensure bots directory exists
     fs.ensureDirSync(this.botsDir);
     
-    // Load existing bots on startup
-    this.loadExistingBots();
+    // Clean up orphaned processes on startup
+    this.cleanupOrphanedProcesses().then(() => {
+      // Load existing bots after cleanup
+      this.loadExistingBots();
+    }).catch(error => {
+      logger.error('Error during startup cleanup:', error);
+      // Still load existing bots even if cleanup fails
+      this.loadExistingBots();
+    });
   }
 
   // Singleton instance
@@ -457,6 +464,44 @@ try {
       
       logger.info(`Bot file found: ${botFilePath}`);
       
+      // Check for existing PID file and kill any existing process
+      const pidFile = path.join(botDir, 'bot.pid');
+      if (await fs.pathExists(pidFile)) {
+        try {
+          const pid = parseInt(await fs.readFile(pidFile, 'utf8'));
+          logger.info(`Found existing PID file for bot ${botId}, PID: ${pid}`);
+          
+          // Try to kill the existing process
+          try {
+            process.kill(-pid, 'SIGTERM');
+            logger.info(`Sent SIGTERM to existing process ${pid}`);
+            await new Promise(resolve => setTimeout(resolve, 3000));
+            
+            // Force kill if still running
+            try {
+              process.kill(-pid, 'SIGKILL');
+              logger.info(`Sent SIGKILL to existing process ${pid}`);
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            } catch {}
+            
+            await fs.remove(pidFile);
+            logger.info(`Killed existing process ${pid} and removed PID file`);
+          } catch (killError) {
+            logger.warn(`Could not kill existing process ${pid}: ${killError.message}`);
+            // Remove PID file anyway
+            try {
+              await fs.remove(pidFile);
+            } catch {}
+          }
+        } catch (fileError) {
+          logger.warn(`Error reading PID file: ${fileError.message}`);
+          // Remove corrupted PID file
+          try {
+            await fs.remove(pidFile);
+          } catch {}
+        }
+      }
+      
       let childProcess;
       
       // Set environment variables for the bot
@@ -554,27 +599,95 @@ try {
   async stopBot(botId) {
     const childProcess = this.botProcesses.get(botId);
     if (!childProcess) {
-      return { success: false, error: 'Bot is not running' };
+      // Check if there's a PID file and try to kill that process
+      const botDir = path.join(this.botsDir, botId);
+      const pidFile = path.join(botDir, 'bot.pid');
+      
+      try {
+        if (await fs.pathExists(pidFile)) {
+          const pid = parseInt(await fs.readFile(pidFile, 'utf8'));
+          logger.info(`Attempting to kill process ${pid} from PID file for bot ${botId}`);
+          
+          try {
+            process.kill(-pid, 'SIGTERM');
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            // Force kill if still running
+            try {
+              process.kill(-pid, 'SIGKILL');
+            } catch {}
+            
+            await fs.remove(pidFile);
+            logger.info(`Killed process ${pid} for bot ${botId}`);
+          } catch (killError) {
+            logger.warn(`Could not kill process ${pid}: ${killError.message}`);
+          }
+        }
+      } catch (fileError) {
+        logger.warn(`Error reading PID file for bot ${botId}: ${fileError.message}`);
+      }
+      
+      return { success: true };
     }
 
     try {
-      // Request graceful shutdown for whole process group
+      logger.info(`Stopping bot ${botId} with PID ${childProcess.pid}`);
+      
+      // First, try to kill the entire process group
       try {
         process.kill(-childProcess.pid, 'SIGTERM');
-      } catch {
-        try { childProcess.kill('SIGTERM'); } catch {}
-      }
-
-      // Wait for process to exit, then emit stopped from the 'close' handler already registered in startBot
-      await new Promise((resolve) => setTimeout(resolve, 3000));
-
-      // If still running, force kill
-      if (this.botProcesses.has(botId)) {
-        try { process.kill(-childProcess.pid, 'SIGKILL'); } catch {
-          try { childProcess.kill('SIGKILL'); } catch {}
+        logger.info(`Sent SIGTERM to process group ${childProcess.pid}`);
+      } catch (groupError) {
+        logger.warn(`Could not kill process group: ${groupError.message}`);
+        // Fallback to direct process kill
+        try {
+          childProcess.kill('SIGTERM');
+          logger.info(`Sent SIGTERM to process ${childProcess.pid}`);
+        } catch (directError) {
+          logger.warn(`Could not kill process directly: ${directError.message}`);
         }
       }
 
+      // Wait for graceful shutdown
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+
+      // Check if process is still running
+      if (this.botProcesses.has(botId)) {
+        logger.warn(`Process still running after SIGTERM, sending SIGKILL`);
+        
+        // Force kill the entire process group
+        try {
+          process.kill(-childProcess.pid, 'SIGKILL');
+          logger.info(`Sent SIGKILL to process group ${childProcess.pid}`);
+        } catch (groupError) {
+          logger.warn(`Could not SIGKILL process group: ${groupError.message}`);
+          // Fallback to direct process kill
+          try {
+            childProcess.kill('SIGKILL');
+            logger.info(`Sent SIGKILL to process ${childProcess.pid}`);
+          } catch (directError) {
+            logger.warn(`Could not SIGKILL process directly: ${directError.message}`);
+          }
+        }
+        
+        // Wait a bit more
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+      }
+
+      // Clean up PID file
+      const botDir = path.join(this.botsDir, botId);
+      const pidFile = path.join(botDir, 'bot.pid');
+      try {
+        await fs.remove(pidFile);
+        logger.info(`Removed PID file for bot ${botId}`);
+      } catch (fileError) {
+        logger.warn(`Could not remove PID file: ${fileError.message}`);
+      }
+
+      // Remove from processes map
+      this.botProcesses.delete(botId);
+      
+      logger.info(`Successfully stopped bot ${botId}`);
       return { success: true };
     } catch (error) {
       logger.error(`Error stopping bot ${botId}:`, error);
@@ -712,9 +825,66 @@ try {
     };
   }
 
-  stopAllBots() {
-    for (const [botId] of this.botProcesses) {
-      this.stopBot(botId);
+  async stopAllBots() {
+    logger.info('Stopping all bots...');
+    const botIds = Array.from(this.botProcesses.keys());
+    
+    for (const botId of botIds) {
+      try {
+        await this.stopBot(botId);
+      } catch (error) {
+        logger.error(`Error stopping bot ${botId}:`, error);
+      }
+    }
+    
+    logger.info('All bots stopped');
+  }
+
+  // Clean up orphaned processes on startup
+  async cleanupOrphanedProcesses() {
+    logger.info('Checking for orphaned bot processes...');
+    
+    try {
+      const botDirs = await fs.readdir(this.botsDir);
+      
+      for (const botDir of botDirs) {
+        const botPath = path.join(this.botsDir, botDir);
+        const pidFile = path.join(botPath, 'bot.pid');
+        
+        if (await fs.pathExists(pidFile)) {
+          try {
+            const pid = parseInt(await fs.readFile(pidFile, 'utf8'));
+            logger.info(`Found orphaned PID file for bot ${botDir}, PID: ${pid}`);
+            
+            // Check if process is still running
+            try {
+              process.kill(pid, 0); // Signal 0 just checks if process exists
+              logger.warn(`Process ${pid} is still running, killing it...`);
+              
+              try {
+                process.kill(-pid, 'SIGTERM');
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                process.kill(-pid, 'SIGKILL');
+              } catch {}
+              
+            } catch (checkError) {
+              logger.info(`Process ${pid} is not running, removing PID file`);
+            }
+            
+            await fs.remove(pidFile);
+            logger.info(`Cleaned up orphaned process for bot ${botDir}`);
+            
+          } catch (error) {
+            logger.warn(`Error cleaning up orphaned process for bot ${botDir}:`, error);
+            // Remove corrupted PID file
+            try {
+              await fs.remove(pidFile);
+            } catch {}
+          }
+        }
+      }
+    } catch (error) {
+      logger.error('Error during orphaned process cleanup:', error);
     }
   }
 }
