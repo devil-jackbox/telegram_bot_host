@@ -15,7 +15,10 @@ try {
 // Get all bots
 router.get('/', (req, res) => {
   try {
-    const bots = botManager.getAllBots();
+    const bots = botManager.getAllBots().map(b => ({
+      ...b,
+      status: botManager.botProcesses && botManager.botProcesses.has(b.id) ? 'running' : 'stopped'
+    }));
     res.json({ success: true, bots });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -32,8 +35,8 @@ router.get('/:botId', (req, res) => {
       return res.status(404).json({ success: false, error: 'Bot not found' });
     }
     
-    const status = botManager.getBotStatus(botId);
-    res.json({ success: true, bot, status });
+    const status = botManager.botProcesses && botManager.botProcesses.has(botId) ? 'running' : 'stopped';
+    res.json({ success: true, bot: { ...bot, status }, status: { running: status === 'running' } });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
