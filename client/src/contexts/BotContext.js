@@ -198,6 +198,31 @@ export const BotProvider = ({ children }) => {
     }
   };
 
+  // Get a single bot
+  const getBot = async (botId) => {
+    try {
+      const response = await api.get(`/bots/${botId}`);
+      if (response.data.success) {
+        // Update the bot in the local state
+        setBots(prevBots => {
+          const existingBot = prevBots.find(b => b.id === botId);
+          if (existingBot) {
+            return prevBots.map(b => b.id === botId ? response.data.bot : b);
+          } else {
+            return [...prevBots, response.data.bot];
+          }
+        });
+        return response.data.bot;
+      } else {
+        throw new Error(response.data.error);
+      }
+    } catch (err) {
+      const errorMsg = err.response?.data?.error || err.message;
+      toast.error(`Failed to fetch bot: ${errorMsg}`);
+      throw err;
+    }
+  };
+
   useEffect(() => {
     fetchBots();
   }, []);
@@ -212,6 +237,7 @@ export const BotProvider = ({ children }) => {
     deleteBot,
     startBot,
     stopBot,
+    getBot,
     getBotLogs,
     getBotErrors,
     getSupportedLanguages,

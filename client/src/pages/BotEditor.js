@@ -19,7 +19,7 @@ import { useSocket } from '../contexts/SocketContext';
 
 const BotEditor = () => {
   const { botId } = useParams();
-  const { bots, getBotFile, updateBotFile, startBot, stopBot, updateBot } = useBots();
+  const { bots, getBot, getBotFile, updateBotFile, startBot, stopBot, updateBot } = useBots();
   const { joinBotRoom, leaveBotRoom } = useSocket();
   
   const [code, setCode] = useState('');
@@ -43,6 +43,45 @@ const BotEditor = () => {
         leaveBotRoom(botId);
       }
     };
+  }, [botId, bots]);
+
+  // Listen for bot status updates
+  useEffect(() => {
+    if (!botId) return;
+
+    const handleBotStatus = (data) => {
+      if (data.botId === botId) {
+        console.log('Bot status update:', data);
+        // Update the bot status in the local state
+        setBot(prevBot => prevBot ? { ...prevBot, status: data.status } : prevBot);
+      }
+    };
+
+    const handleBotLog = (data) => {
+      if (data.botId === botId) {
+        setLogs(prevLogs => [...prevLogs, data.log]);
+      }
+    };
+
+    const handleBotError = (data) => {
+      if (data.botId === botId) {
+        setErrors(prevErrors => [...prevErrors, data.error]);
+      }
+    };
+
+    // Add event listeners
+    const socket = window.socket || null;
+    if (socket) {
+      socket.on('bot-status', handleBotStatus);
+      socket.on('bot-log', handleBotLog);
+      socket.on('bot-error', handleBotError);
+
+      return () => {
+        socket.off('bot-status', handleBotStatus);
+        socket.off('bot-log', handleBotLog);
+        socket.off('bot-error', handleBotError);
+      };
+    }
   }, [botId]);
 
   // Keyboard shortcut for fullscreen
@@ -62,12 +101,22 @@ const BotEditor = () => {
     try {
       setLoading(true);
       
-      // Find bot in context
-      const currentBot = bots.find(b => b.id === botId);
+      // First try to find bot in context
+      let currentBot = bots.find(b => b.id === botId);
+      
+      // If not found in context, fetch from server
       if (!currentBot) {
-        throw new Error('Bot not found');
+        console.log('Bot not found in context, fetching from server...');
+        try {
+          currentBot = await getBot(botId);
+          setBot(currentBot);
+        } catch (error) {
+          console.error('Failed to fetch bot from server:', error);
+          return;
+        }
+      } else {
+        setBot(currentBot);
       }
-      setBot(currentBot);
 
       // Load bot file
       const fileData = await getBotFile(botId);
