@@ -16,9 +16,7 @@ const Settings = () => {
     maxErrorsPerBot: 100,
     autoRestartOnError: true,
     logRetentionDays: 30,
-    enableNotifications: true,
-    autoIdleTimeout: 30, // minutes
-    maxConcurrentBots: 2
+    enableNotifications: true
   });
 
   const [isSaving, setIsSaving] = useState(false);
@@ -75,9 +73,7 @@ const Settings = () => {
       maxErrorsPerBot: 100,
       autoRestartOnError: true,
       logRetentionDays: 30,
-      enableNotifications: true,
-      autoIdleTimeout: 30,
-      maxConcurrentBots: 2
+      enableNotifications: true
     };
     setSettings(defaultSettings);
     toast.success('Settings reset to defaults');
@@ -144,21 +140,6 @@ const Settings = () => {
               />
               <p className="text-xs text-gray-500 mt-1">Error history is limited to save memory</p>
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Max Concurrent Running Bots
-              </label>
-              <input
-                type="number"
-                value={settings.maxConcurrentBots}
-                onChange={(e) => setSettings({ ...settings, maxConcurrentBots: parseInt(e.target.value) || 1 })}
-                className="input mt-1"
-                min="1"
-                max="5"
-              />
-              <p className="text-xs text-gray-500 mt-1">Prevents overloading Railway's free plan</p>
-            </div>
           </div>
         </div>
 
@@ -211,21 +192,6 @@ const Settings = () => {
                 max="90"
               />
               <p className="text-xs text-gray-500 mt-1">Logs older than this are deleted</p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Auto-idle Timeout (minutes)
-              </label>
-              <input
-                type="number"
-                value={settings.autoIdleTimeout}
-                onChange={(e) => setSettings({ ...settings, autoIdleTimeout: parseInt(e.target.value) || 30 })}
-                className="input mt-1"
-                min="5"
-                max="120"
-              />
-              <p className="text-xs text-gray-500 mt-1">Stop bots after inactivity to save resources</p>
             </div>
           </div>
         </div>
