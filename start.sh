@@ -1,12 +1,12 @@
-#!/bin/bash
+#!/bin/sh
 
 echo "🚀 Starting Telegram Bot Platform"
 echo "================================"
 
 # Set environment variables
-export NODE_ENV=${NODE_ENV:-production}
-export PORT=${PORT:-3001}
-export HOST=${HOST:-0.0.0.0}
+export NODE_ENV="${NODE_ENV:-production}"
+export PORT="${PORT:-3001}"
+export HOST="${HOST:-0.0.0.0}"
 
 echo "Environment: $NODE_ENV"
 echo "Port: $PORT"
