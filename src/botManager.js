@@ -20,6 +20,16 @@ class BotManager {
     this.loadExistingBots();
   }
 
+  // Singleton instance
+  static instance = null;
+  
+  static getInstance(io = null) {
+    if (!BotManager.instance) {
+      BotManager.instance = new BotManager(io);
+    }
+    return BotManager.instance;
+  }
+
   async loadExistingBots() {
     try {
       // Check if bots directory exists, create if not
@@ -256,7 +266,8 @@ try {
       const env = {
         ...process.env,
         BOT_TOKEN: bot.token,
-        NODE_ENV: 'production'
+        NODE_ENV: 'production',
+        PATH: process.env.PATH
       };
       
       switch (bot.language) {

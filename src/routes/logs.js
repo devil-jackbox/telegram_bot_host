@@ -3,12 +3,12 @@ const router = express.Router();
 const BotManager = require('../botManager');
 const logger = require('../utils/logger');
 
-// Create bot manager instance
+// Get bot manager instance
 let botManager;
 try {
-  botManager = new BotManager();
+  botManager = BotManager.getInstance();
 } catch (error) {
-  logger.error('Failed to initialize bot manager:', error);
+  logger.error('Failed to get bot manager instance:', error);
   botManager = null;
 }
 
