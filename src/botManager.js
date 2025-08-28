@@ -339,19 +339,19 @@ try {
       try {
         switch (bot.language) {
           case 'javascript':
-            childProcess = spawn('node', [botFile], { cwd: botDir, env });
+            childProcess = spawn('node', [botFile], { cwd: botDir, env, detached: true });
             break;
           case 'typescript':
-            childProcess = spawn('npx', ['ts-node', botFile], { cwd: botDir, env });
+            childProcess = spawn('npx', ['ts-node', botFile], { cwd: botDir, env, detached: true });
             break;
           case 'python':
-            childProcess = spawn('python', [botFile], { cwd: botDir, env });
+            childProcess = spawn('python', [botFile], { cwd: botDir, env, detached: true });
             break;
           case 'php':
-            childProcess = spawn('php', [botFile], { cwd: botDir, env });
+            childProcess = spawn('php', [botFile], { cwd: botDir, env, detached: true });
             break;
           default:
-            childProcess = spawn('node', [botFile], { cwd: botDir, env });
+            childProcess = spawn('node', [botFile], { cwd: botDir, env, detached: true });
         }
         logger.info(`Spawn successful for bot ${botId}`);
       } catch (spawnError) {
@@ -360,6 +360,10 @@ try {
       }
 
       this.botProcesses.set(botId, childProcess);
+      // Persist PID for recovery
+      try {
+        await fs.writeFile(path.join(botDir, 'bot.pid'), String(childProcess.pid));
+      } catch {}
       
       // Handle process output
       childProcess.stdout.on('data', (data) => {
@@ -374,6 +378,8 @@ try {
 
       childProcess.on('close', (code) => {
         this.botProcesses.delete(botId);
+        // cleanup pid file
+        try { fs.remove(path.join(this.botsDir, botId, 'bot.pid')); } catch {}
         this.addLog(botId, 'info', `Bot process exited with code ${code}`);
         if (this.io) {
           this.io.to(`bot-${botId}`).emit('bot-status', { botId, status: 'stopped' });
@@ -405,15 +411,21 @@ try {
     }
 
     try {
-      // Request graceful shutdown
-      childProcess.kill('SIGTERM');
+      // Request graceful shutdown for whole process group
+      try {
+        process.kill(-childProcess.pid, 'SIGTERM');
+      } catch {
+        try { childProcess.kill('SIGTERM'); } catch {}
+      }
 
       // Wait for process to exit, then emit stopped from the 'close' handler already registered in startBot
       await new Promise((resolve) => setTimeout(resolve, 3000));
 
       // If still running, force kill
       if (this.botProcesses.has(botId)) {
-        try { childProcess.kill('SIGKILL'); } catch {}
+        try { process.kill(-childProcess.pid, 'SIGKILL'); } catch {
+          try { childProcess.kill('SIGKILL'); } catch {}
+        }
       }
 
       return { success: true };
