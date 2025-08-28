@@ -177,20 +177,7 @@ const BotEditor = () => {
     setIsFullscreen(!isFullscreen);
   };
 
-  const getLanguage = () => {
-    if (!bot) return 'javascript';
-    
-    const languageMap = {
-      'javascript': 'javascript',
-      'typescript': 'typescript',
-      'python': 'python',
-      'php': 'php',
-      'ruby': 'ruby',
-      'go': 'go'
-    };
-    
-    return languageMap[bot.language] || 'javascript';
-  };
+  const getLanguage = () => 'javascript';
 
   const getStatusBadge = () => {
     if (!bot) return null;

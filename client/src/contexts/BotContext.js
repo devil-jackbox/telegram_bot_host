@@ -162,11 +162,10 @@ export const BotProvider = ({ children }) => {
   // Get supported languages
   const getSupportedLanguages = async () => {
     try {
-      const response = await api.get('/bots/languages/supported');
-      return response.data.languages || [];
+      // Force JavaScript only on the client
+      return [{ id: 'javascript', name: 'JavaScript', extension: 'js' }];
     } catch (err) {
-      toast.error('Failed to fetch supported languages');
-      return [];
+      return [{ id: 'javascript', name: 'JavaScript', extension: 'js' }];
     }
   };
 

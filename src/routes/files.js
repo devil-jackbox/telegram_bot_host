@@ -30,7 +30,7 @@ router.get('/:botId', async (req, res) => {
     }
     
     const botDir = path.join(__dirname, '../../bots', botId);
-    const fileExtension = botManager.getFileExtension(bot.language);
+    const fileExtension = 'js';
     const fileName = `bot.${fileExtension}`;
     const filePath = path.join(botDir, fileName);
     

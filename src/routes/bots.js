@@ -44,17 +44,20 @@ router.post('/', async (req, res) => {
   try {
     const { name, token, language, code, autoStart } = req.body;
     
-    if (!name || !token || !language) {
+    if (!name || !token) {
       return res.status(400).json({ 
         success: false, 
-        error: 'Name, token, and language are required' 
+        error: 'Name and token are required' 
       });
     }
     
+    // Force JavaScript only
+    const lang = 'javascript';
+
     const result = await botManager.createBot({
       name,
       token,
-      language,
+      language: lang,
       code: code || '',
       autoStart: autoStart || false
     });
@@ -160,12 +163,7 @@ router.get('/:botId/errors', (req, res) => {
 // Get supported languages
 router.get('/languages/supported', (req, res) => {
   const languages = [
-    { id: 'javascript', name: 'JavaScript', extension: 'js' },
-    { id: 'typescript', name: 'TypeScript', extension: 'ts' },
-    { id: 'python', name: 'Python', extension: 'py' },
-    { id: 'php', name: 'PHP', extension: 'php' },
-    { id: 'ruby', name: 'Ruby', extension: 'rb' },
-    { id: 'go', name: 'Go', extension: 'go' }
+    { id: 'javascript', name: 'JavaScript', extension: 'js' }
   ];
   
   res.json({ success: true, languages });
