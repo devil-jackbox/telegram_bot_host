@@ -35,12 +35,12 @@ export const SocketProvider = ({ children }) => {
     newSocket.on('disconnect', () => {
       setIsConnected(false);
       console.log('Disconnected from server');
-      toast.error('Connection lost. Trying to reconnect...');
+      // Route connection messages to console only (no popup spam)
     });
 
     newSocket.on('connect_error', (error) => {
       console.error('Connection error:', error);
-      toast.error('Failed to connect to server');
+      // Suppress popup toasts for connection errors
     });
 
     newSocket.on('bot-status', (data) => {
@@ -52,11 +52,13 @@ export const SocketProvider = ({ children }) => {
     });
 
     newSocket.on('bot-error', (data) => {
+      // Errors are displayed in the Errors tab; avoid toast spam
       console.error('Bot error:', data);
-      toast.error(`Bot error: ${data.error.error}`);
     });
 
     setSocket(newSocket);
+    // Expose globally for components that need direct access
+    window.socket = newSocket;
 
     return () => {
       newSocket.close();
