@@ -62,8 +62,10 @@ export const BotProvider = ({ children }) => {
     try {
       const response = await api.put(`/bots/${botId}`, updates);
       if (response.data.success) {
+        // Update with the returned bot data if available, otherwise use updates
+        const updatedBot = response.data.bot || { ...updates };
         setBots(prev => prev.map(bot => 
-          bot.id === botId ? { ...bot, ...updates } : bot
+          bot.id === botId ? { ...bot, ...updatedBot } : bot
         ));
         toast.success('Bot updated successfully!');
         return response.data;

@@ -82,6 +82,10 @@ class BotManager {
         language: botData.language,
         code: botData.code,
         autoStart: botData.autoStart || false,
+        environmentVariables: botData.environmentVariables || [
+          { key: 'BOT_TOKEN', value: botData.token, isSecret: true },
+          { key: 'NODE_ENV', value: 'production', isSecret: false }
+        ],
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
@@ -99,14 +103,9 @@ class BotManager {
       
       logger.info(`Created bot: ${botId} (${config.name})`);
       
-      // Start bot if autoStart is enabled
-      if (config.autoStart) {
-        this.startBot(botId);
-      }
-      
-      return { success: true, botId, config };
+      return { success: true, bot: config };
     } catch (error) {
-      logger.error(`Error creating bot ${botId}:`, error);
+      logger.error(`Failed to create bot: ${error.message}`);
       return { success: false, error: error.message };
     }
   }
@@ -326,12 +325,23 @@ try {
       // Set environment variables for the bot
       const env = {
         ...(process.env || {}),
-        BOT_TOKEN: bot.token,
-        NODE_ENV: 'production',
         PATH: (process.env && process.env.PATH) || '/usr/local/bin:/usr/bin:/bin'
       };
       
-      logger.info(`Environment variables set for bot ${botId}`);
+      // Add bot-specific environment variables
+      if (bot.environmentVariables && Array.isArray(bot.environmentVariables)) {
+        bot.environmentVariables.forEach(envVar => {
+          if (envVar.key && envVar.value !== undefined) {
+            env[envVar.key] = envVar.value;
+          }
+        });
+      } else {
+        // Fallback to default environment variables
+        env.BOT_TOKEN = bot.token;
+        env.NODE_ENV = 'production';
+      }
+      
+      logger.info(`Environment variables set for bot ${botId}: ${Object.keys(env).join(', ')}`);
 
       // Ensure per-bot dependencies are installed
       await this.ensureDependencies(bot);
@@ -450,6 +460,11 @@ try {
       // Update configuration
       Object.assign(bot, updates, { updatedAt: new Date().toISOString() });
       
+      // Ensure environment variables are properly structured
+      if (updates.environmentVariables && Array.isArray(updates.environmentVariables)) {
+        bot.environmentVariables = updates.environmentVariables;
+      }
+      
       const botDir = path.join(this.botsDir, botId);
       await fs.writeJson(path.join(botDir, 'config.json'), bot, { spaces: 2 });
       
@@ -458,12 +473,12 @@ try {
       
       this.bots.set(botId, bot);
       
-      // Restart bot if it was running
-      if (updates.autoStart !== false) {
+      // Restart bot if it was running and autoStart is enabled
+      if (bot.autoStart && updates.autoStart !== false) {
         this.startBot(botId);
       }
       
-      return { success: true };
+      return { success: true, bot };
     } catch (error) {
       logger.error(`Error updating bot ${botId}:`, error);
       return { success: false, error: error.message };
