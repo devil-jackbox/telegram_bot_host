@@ -10,7 +10,9 @@ import {
   AlertTriangle,
   Settings,
   Activity,
-  Clock
+  Clock,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 import { useBots } from '../contexts/BotContext';
 import { useSocket } from '../contexts/SocketContext';
@@ -28,6 +30,7 @@ const BotEditor = () => {
   const [activeTab, setActiveTab] = useState('editor');
   const [logs, setLogs] = useState([]);
   const [errors, setErrors] = useState([]);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
     if (botId) {
@@ -41,6 +44,19 @@ const BotEditor = () => {
       }
     };
   }, [botId]);
+
+  // Keyboard shortcut for fullscreen
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'F11' && activeTab === 'editor') {
+        e.preventDefault();
+        toggleFullscreen();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [activeTab]);
 
   const loadBotData = async () => {
     try {
@@ -106,6 +122,10 @@ const BotEditor = () => {
     } catch (error) {
       console.error('Failed to restart bot:', error);
     }
+  };
+
+  const toggleFullscreen = () => {
+    setIsFullscreen(!isFullscreen);
   };
 
   const getLanguage = () => {
@@ -232,8 +252,16 @@ const BotEditor = () => {
 
       {/* Content */}
       {activeTab === 'editor' && (
-        <div className="card">
-          <div className="h-96 overflow-hidden">
+        <div className={`card ${isFullscreen ? 'fixed inset-0 z-50 m-0 rounded-none' : ''}`}>
+          <div className={`${isFullscreen ? 'h-full' : 'h-96'} overflow-hidden relative`}>
+            {/* Fullscreen toggle button */}
+            <button
+              onClick={toggleFullscreen}
+              className="absolute top-2 right-2 z-10 p-2 bg-gray-800 text-white rounded-md hover:bg-gray-700 transition-colors"
+              title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+            >
+              {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+            </button>
             <Editor
               height="100%"
               language={getLanguage()}

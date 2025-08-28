@@ -264,10 +264,10 @@ try {
       
       // Set environment variables for the bot
       const env = {
-        ...process.env,
+        ...(process.env || {}),
         BOT_TOKEN: bot.token,
         NODE_ENV: 'production',
-        PATH: process.env.PATH
+        PATH: (process.env && process.env.PATH) || '/usr/local/bin:/usr/bin:/bin'
       };
       
       switch (bot.language) {

@@ -91,6 +91,12 @@
   overflow: hidden;
 }
 
+/* Fullscreen editor */
+.monaco-editor.fullscreen {
+  border-radius: 0;
+  border: none;
+}
+
 .monaco-editor .margin {
   @apply bg-gray-50;
 }
