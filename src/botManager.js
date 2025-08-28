@@ -260,7 +260,25 @@ try {
     const botDir = path.join(this.botsDir, botId);
     
     try {
-      let process;
+      logger.info(`Starting bot ${botId} in directory: ${botDir}`);
+      
+      // Check if bot directory exists
+      if (!await fs.pathExists(botDir)) {
+        throw new Error(`Bot directory does not exist: ${botDir}`);
+      }
+      
+      // Check if bot file exists
+      const fileExtension = this.getFileExtension(bot.language);
+      const botFile = `bot.${fileExtension}`;
+      const botFilePath = path.join(botDir, botFile);
+      
+      if (!await fs.pathExists(botFilePath)) {
+        throw new Error(`Bot file does not exist: ${botFilePath}`);
+      }
+      
+      logger.info(`Bot file found: ${botFilePath}`);
+      
+      let childProcess;
       
       // Set environment variables for the bot
       const env = {
@@ -270,37 +288,45 @@ try {
         PATH: (process.env && process.env.PATH) || '/usr/local/bin:/usr/bin:/bin'
       };
       
-      switch (bot.language) {
-        case 'javascript':
-          process = spawn('node', ['bot.js'], { cwd: botDir, env });
-          break;
-        case 'typescript':
-          process = spawn('npx', ['ts-node', 'bot.ts'], { cwd: botDir, env });
-          break;
-        case 'python':
-          process = spawn('python', ['bot.py'], { cwd: botDir, env });
-          break;
-        case 'php':
-          process = spawn('php', ['bot.php'], { cwd: botDir, env });
-          break;
-        default:
-          process = spawn('node', ['bot.js'], { cwd: botDir, env });
+      logger.info(`Environment variables set for bot ${botId}`);
+      
+      try {
+        switch (bot.language) {
+          case 'javascript':
+            childProcess = spawn('node', [botFile], { cwd: botDir, env });
+            break;
+          case 'typescript':
+            childProcess = spawn('npx', ['ts-node', botFile], { cwd: botDir, env });
+            break;
+          case 'python':
+            childProcess = spawn('python', [botFile], { cwd: botDir, env });
+            break;
+          case 'php':
+            childProcess = spawn('php', [botFile], { cwd: botDir, env });
+            break;
+          default:
+            childProcess = spawn('node', [botFile], { cwd: botDir, env });
+        }
+        logger.info(`Spawn successful for bot ${botId}`);
+      } catch (spawnError) {
+        logger.error(`Spawn error for bot ${botId}:`, spawnError);
+        throw new Error(`Failed to spawn bot process: ${spawnError.message}`);
       }
 
-      this.botProcesses.set(botId, process);
+      this.botProcesses.set(botId, childProcess);
       
       // Handle process output
-      process.stdout.on('data', (data) => {
+      childProcess.stdout.on('data', (data) => {
         const log = data.toString().trim();
         this.addLog(botId, 'info', log);
       });
 
-      process.stderr.on('data', (data) => {
+      childProcess.stderr.on('data', (data) => {
         const error = data.toString().trim();
         this.addError(botId, error);
       });
 
-      process.on('close', (code) => {
+      childProcess.on('close', (code) => {
         this.botProcesses.delete(botId);
         this.addLog(botId, 'info', `Bot process exited with code ${code}`);
         if (this.io) {
@@ -308,7 +334,7 @@ try {
         }
       });
 
-      process.on('error', (error) => {
+      childProcess.on('error', (error) => {
         this.addError(botId, `Process error: ${error.message}`);
         this.botProcesses.delete(botId);
       });
