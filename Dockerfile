@@ -2,7 +2,7 @@
 FROM node:18-alpine
 
 # Install build dependencies
-RUN apk add --no-cache python3 make g++ git
+RUN apk add --no-cache python3 py3-pip make g++ git
 
 # Set working directory
 WORKDIR /app
