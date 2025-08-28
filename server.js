@@ -183,42 +183,59 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Something went wrong!' });
 });
 
-const PORT = process.env.PORT || 3001;
+// Graceful shutdown handlers
+process.on('SIGINT', async () => {
+  logger.info('Received SIGINT, shutting down gracefully...');
+  
+  try {
+    if (botManager) {
+      await botManager.stopAllBots();
+    }
+  } catch (error) {
+    logger.error('Error during graceful shutdown:', error);
+  }
+  
+  process.exit(0);
+});
 
-// Start server with error handling
-server.listen(PORT, '0.0.0.0', () => {
-  logger.info(`Server running on port ${PORT}`);
-  logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
-  logger.info(`Health check available at: http://localhost:${PORT}/health`);
+process.on('SIGTERM', async () => {
+  logger.info('Received SIGTERM, shutting down gracefully...');
+  
+  try {
+    if (botManager) {
+      await botManager.stopAllBots();
+    }
+  } catch (error) {
+    logger.error('Error during graceful shutdown:', error);
+  }
+  
+  process.exit(0);
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  logger.error('Uncaught Exception:', error);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
+});
+
+// Start server
+const PORT = process.env.PORT || 3000;
+const HOST = process.env.HOST || '0.0.0.0';
+
+server.listen(PORT, HOST, () => {
+  logger.info(`🚀 Server running on ${HOST}:${PORT}`);
+  logger.info(`📱 Platform is ready to host Telegram bots!`);
 });
 
 // Handle server errors
 server.on('error', (error) => {
   logger.error('Server error:', error);
   process.exit(1);
-});
-
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  logger.info('SIGTERM received, shutting down gracefully');
-  if (botManager) {
-    botManager.stopAllBots();
-  }
-  server.close(() => {
-    logger.info('Process terminated');
-    process.exit(0);
-  });
-});
-
-process.on('SIGINT', () => {
-  logger.info('SIGINT received, shutting down gracefully');
-  if (botManager) {
-    botManager.stopAllBots();
-  }
-  server.close(() => {
-    logger.info('Process terminated');
-    process.exit(0);
-  });
 });
 
 module.exports = { app, server, botManager };
