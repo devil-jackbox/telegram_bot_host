@@ -40,7 +40,8 @@ const BotEditor = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [environmentVariables, setEnvironmentVariables] = useState([
     { key: 'BOT_TOKEN', value: '', isSecret: true },
-    { key: 'NODE_ENV', value: 'production', isSecret: false }
+    { key: 'NODE_ENV', value: 'production', isSecret: false },
+    { key: 'BOT_MODE', value: 'polling', isSecret: false }
   ]);
   const [showSecrets, setShowSecrets] = useState(false);
   const [hasError, setHasError] = useState(false);
@@ -145,7 +146,8 @@ const BotEditor = () => {
           // Set default environment variables
           setEnvironmentVariables([
             { key: 'BOT_TOKEN', value: currentBot.token || '', isSecret: true },
-            { key: 'NODE_ENV', value: 'production', isSecret: false }
+            { key: 'NODE_ENV', value: 'production', isSecret: false },
+            { key: 'BOT_MODE', value: 'polling', isSecret: false }
           ]);
         }
       }
@@ -520,6 +522,16 @@ const BotEditor = () => {
                 <Plus size={16} />
                 Add Variable
               </button>
+            </div>
+          </div>
+
+          {/* Help Information */}
+          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <h4 className="text-sm font-medium text-blue-900 mb-2">💡 Bot Mode Information</h4>
+            <div className="text-sm text-blue-800 space-y-1">
+              <p><strong>Polling Mode:</strong> Bot continuously checks for new messages. May receive queued messages when restarted.</p>
+              <p><strong>Webhook Mode:</strong> Telegram sends messages directly to your bot. No message queuing, but requires HTTPS endpoint.</p>
+              <p><strong>Message Deduplication:</strong> The bot automatically prevents duplicate responses to avoid flooding.</p>
             </div>
           </div>
 
