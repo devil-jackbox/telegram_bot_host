@@ -406,6 +406,13 @@ try {
 
     try {
       childProcess.kill('SIGTERM');
+      // Fallback to SIGKILL if not exited after timeout
+      setTimeout(() => {
+        if (this.botProcesses.has(botId)) {
+          try { childProcess.kill('SIGKILL'); } catch {}
+          this.botProcesses.delete(botId);
+        }
+      }, 3000);
       this.botProcesses.delete(botId);
       this.addLog(botId, 'info', 'Bot stopped');
       if (this.io) {
