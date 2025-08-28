@@ -5,7 +5,7 @@ const { v4: uuidv4 } = require('uuid');
 const logger = require('./utils/logger');
 
 class BotManager {
-  constructor(io) {
+  constructor(io = null) {
     this.io = io;
     this.bots = new Map();
     this.botProcesses = new Map();
@@ -252,21 +252,28 @@ try {
     try {
       let process;
       
+      // Set environment variables for the bot
+      const env = {
+        ...process.env,
+        BOT_TOKEN: bot.token,
+        NODE_ENV: 'production'
+      };
+      
       switch (bot.language) {
         case 'javascript':
-          process = spawn('node', ['bot.js'], { cwd: botDir });
+          process = spawn('node', ['bot.js'], { cwd: botDir, env });
           break;
         case 'typescript':
-          process = spawn('npx', ['ts-node', 'bot.ts'], { cwd: botDir });
+          process = spawn('npx', ['ts-node', 'bot.ts'], { cwd: botDir, env });
           break;
         case 'python':
-          process = spawn('python', ['bot.py'], { cwd: botDir });
+          process = spawn('python', ['bot.py'], { cwd: botDir, env });
           break;
         case 'php':
-          process = spawn('php', ['bot.php'], { cwd: botDir });
+          process = spawn('php', ['bot.php'], { cwd: botDir, env });
           break;
         default:
-          process = spawn('node', ['bot.js'], { cwd: botDir });
+          process = spawn('node', ['bot.js'], { cwd: botDir, env });
       }
 
       this.botProcesses.set(botId, process);
@@ -285,7 +292,9 @@ try {
       process.on('close', (code) => {
         this.botProcesses.delete(botId);
         this.addLog(botId, 'info', `Bot process exited with code ${code}`);
-        this.io.to(`bot-${botId}`).emit('bot-status', { botId, status: 'stopped' });
+        if (this.io) {
+          this.io.to(`bot-${botId}`).emit('bot-status', { botId, status: 'stopped' });
+        }
       });
 
       process.on('error', (error) => {
@@ -294,7 +303,9 @@ try {
       });
 
       this.addLog(botId, 'info', 'Bot started successfully');
-      this.io.to(`bot-${botId}`).emit('bot-status', { botId, status: 'running' });
+      if (this.io) {
+        this.io.to(`bot-${botId}`).emit('bot-status', { botId, status: 'running' });
+      }
       
       return { success: true };
     } catch (error) {
@@ -398,7 +409,9 @@ try {
     }
     
     this.botLogs.set(botId, logs);
-    this.io.to(`bot-${botId}`).emit('bot-log', { botId, log: logEntry });
+    if (this.io) {
+      this.io.to(`bot-${botId}`).emit('bot-log', { botId, log: logEntry });
+    }
   }
 
   addError(botId, error) {
@@ -416,7 +429,9 @@ try {
     }
     
     this.botErrors.set(botId, errors);
-    this.io.to(`bot-${botId}`).emit('bot-error', { botId, error: errorEntry });
+    if (this.io) {
+      this.io.to(`bot-${botId}`).emit('bot-error', { botId, error: errorEntry });
+    }
   }
 
   getBot(botId) {
