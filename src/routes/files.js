@@ -5,12 +5,12 @@ const path = require('path');
 const BotManager = require('../botManager');
 const logger = require('../utils/logger');
 
-// Create bot manager instance
+// Get bot manager instance
 let botManager;
 try {
-  botManager = new BotManager();
+  botManager = BotManager.getInstance();
 } catch (error) {
-  logger.error('Failed to initialize bot manager:', error);
+  logger.error('Failed to get bot manager instance:', error);
   botManager = null;
 }
 
@@ -18,6 +18,11 @@ try {
 router.get('/:botId', async (req, res) => {
   try {
     const { botId } = req.params;
+    
+    if (!botManager) {
+      return res.status(500).json({ success: false, error: 'Bot manager not available' });
+    }
+    
     const bot = botManager.getBot(botId);
     
     if (!bot) {
@@ -25,11 +30,13 @@ router.get('/:botId', async (req, res) => {
     }
     
     const botDir = path.join(__dirname, '../../bots', botId);
-    const fileExtension = botManager.getFileExtension ? 
-      botManager.getFileExtension(bot.language) : 
-      (bot.language === 'javascript' ? 'js' : 'py');
+    const fileExtension = botManager.getFileExtension(bot.language);
     const fileName = `bot.${fileExtension}`;
     const filePath = path.join(botDir, fileName);
+    
+    console.log('🔍 Debug file path:', filePath);
+    console.log('🔍 Bot directory exists:', await fs.pathExists(botDir));
+    console.log('🔍 File exists:', await fs.pathExists(filePath));
     
     if (!await fs.pathExists(filePath)) {
       return res.status(404).json({ success: false, error: 'Bot file not found' });
@@ -38,6 +45,7 @@ router.get('/:botId', async (req, res) => {
     const content = await fs.readFile(filePath, 'utf8');
     res.json({ success: true, content, fileName });
   } catch (error) {
+    console.error('❌ File read error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });

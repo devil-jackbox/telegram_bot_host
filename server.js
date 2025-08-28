@@ -91,7 +91,7 @@ if (process.env.NODE_ENV !== 'production') {
 let botManager;
 try {
   const BotManager = require('./src/botManager');
-  botManager = new BotManager(io);
+  botManager = BotManager.getInstance(io);
   logger.info('BotManager initialized successfully');
 } catch (error) {
   logger.error('Failed to initialize BotManager:', error);
