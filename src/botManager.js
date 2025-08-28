@@ -246,6 +246,49 @@ try {
     return boilerplates[language] || boilerplates.javascript;
   }
 
+  async ensureDependencies(bot) {
+    const botDir = path.join(this.botsDir, bot.id);
+    try {
+      if (bot.language === 'javascript' || bot.language === 'typescript') {
+        const nodeModulesPath = path.join(botDir, 'node_modules');
+        const hasNodeModules = await fs.pathExists(nodeModulesPath);
+        const pkgJsonPath = path.join(botDir, 'package.json');
+        const hasPkg = await fs.pathExists(pkgJsonPath);
+        if (hasPkg && !hasNodeModules) {
+          this.addLog(bot.id, 'info', 'Installing Node.js dependencies...');
+          await new Promise((resolve, reject) => {
+            const install = spawn('npm', ['install', '--omit=dev'], { cwd: botDir, env: { ...(process.env||{}) } });
+            install.stdout.on('data', d => this.addLog(bot.id, 'info', d.toString()));
+            install.stderr.on('data', d => this.addError(bot.id, d.toString()));
+            install.on('close', code => code === 0 ? resolve() : reject(new Error(`npm install exited with ${code}`)));
+            install.on('error', err => reject(err));
+          });
+          this.addLog(bot.id, 'info', 'Node.js dependencies installed');
+        }
+      }
+
+      if (bot.language === 'python') {
+        const venvPath = path.join(botDir, '.venv');
+        const reqPath = path.join(botDir, 'requirements.txt');
+        const hasReq = await fs.pathExists(reqPath);
+        if (hasReq) {
+          this.addLog(bot.id, 'info', 'Installing Python dependencies...');
+          await new Promise((resolve, reject) => {
+            const pip = spawn('pip', ['install', '-r', 'requirements.txt', '--no-cache-dir'], { cwd: botDir, env: { ...(process.env||{}) } });
+            pip.stdout.on('data', d => this.addLog(bot.id, 'info', d.toString()));
+            pip.stderr.on('data', d => this.addError(bot.id, d.toString()));
+            pip.on('close', code => code === 0 ? resolve() : reject(new Error(`pip install exited with ${code}`)));
+            pip.on('error', err => reject(err));
+          });
+          this.addLog(bot.id, 'info', 'Python dependencies installed');
+        }
+      }
+    } catch (depErr) {
+      this.addError(bot.id, `Dependency installation failed: ${depErr.message}`);
+      throw depErr;
+    }
+  }
+
   async startBot(botId) {
     if (this.botProcesses.has(botId)) {
       logger.warn(`Bot ${botId} is already running`);
@@ -289,6 +332,9 @@ try {
       };
       
       logger.info(`Environment variables set for bot ${botId}`);
+
+      // Ensure per-bot dependencies are installed
+      await this.ensureDependencies(bot);
       
       try {
         switch (bot.language) {
