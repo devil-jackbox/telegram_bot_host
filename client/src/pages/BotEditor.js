@@ -528,10 +528,27 @@ const BotEditor = () => {
           {/* Help Information */}
           <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <h4 className="text-sm font-medium text-blue-900 mb-2">💡 Bot Mode Information</h4>
-            <div className="text-sm text-blue-800 space-y-1">
-              <p><strong>Polling Mode:</strong> Bot continuously checks for new messages. May receive queued messages when restarted.</p>
-              <p><strong>Webhook Mode:</strong> Telegram sends messages directly to your bot. No message queuing, but requires HTTPS endpoint.</p>
-              <p><strong>Message Deduplication:</strong> The bot automatically prevents duplicate responses to avoid flooding.</p>
+            <div className="text-sm text-blue-800 space-y-2">
+              <div>
+                <p className="font-medium">📡 Polling Mode (Default):</p>
+                <p>• Bot continuously checks for new messages</p>
+                <p>• May receive queued messages when restarted</p>
+                <p>• Works on any hosting platform</p>
+                <p>• Set <code className="bg-blue-100 px-1 rounded">BOT_MODE=polling</code></p>
+              </div>
+              <div>
+                <p className="font-medium">🌐 Webhook Mode:</p>
+                <p>• Telegram sends messages directly to your bot</p>
+                <p>• No message queuing, instant responses</p>
+                <p>• Requires HTTPS endpoint and public URL</p>
+                <p>• Set <code className="bg-blue-100 px-1 rounded">BOT_MODE=webhook</code> and <code className="bg-blue-100 px-1 rounded">WEBHOOK_URL=https://your-domain.com/webhook</code></p>
+              </div>
+              <div>
+                <p className="font-medium">🛡️ Message Deduplication:</p>
+                <p>• Automatically prevents duplicate responses</p>
+                <p>• Built-in rate limiting (100ms between messages)</p>
+                <p>• Memory management (keeps last 1000 processed messages)</p>
+              </div>
             </div>
           </div>
 
