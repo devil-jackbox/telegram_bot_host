@@ -97,6 +97,25 @@ export const BotProvider = ({ children }) => {
     }
   };
 
+  // Clone a bot
+  const cloneBot = async (botId) => {
+    try {
+      const response = await api.post(`/bots/${botId}/clone`);
+      if (response.data.success) {
+        const newBot = response.data.bot;
+        setBots(prev => [...prev, newBot]);
+        toast.success('Bot cloned successfully!');
+        return newBot;
+      } else {
+        throw new Error(response.data.error);
+      }
+    } catch (err) {
+      const errorMsg = err.response?.data?.error || err.message;
+      toast.error(`Failed to clone bot: ${errorMsg}`);
+      throw err;
+    }
+  };
+
   // Start a bot
   const startBot = async (botId) => {
     try {
@@ -238,6 +257,7 @@ export const BotProvider = ({ children }) => {
     deleteBot,
     startBot,
     stopBot,
+    cloneBot,
     getBot,
     getBotLogs,
     getBotErrors,
