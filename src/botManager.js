@@ -811,52 +811,6 @@ try {
     }
   }
 
-  async cloneBot(sourceBotId) {
-    try {
-      const sourceBot = this.bots.get(sourceBotId);
-      if (!sourceBot) {
-        return { success: false, error: 'Source bot not found' };
-      }
-
-      // New bot id and directory
-      const newBotId = uuidv4();
-      const newBotDir = path.join(this.botsDir, newBotId);
-      await fs.ensureDir(newBotDir);
-
-      // Prepare new bot config
-      const newConfig = {
-        id: newBotId,
-        name: `${sourceBot.name} (Copy)`,
-        token: '',
-        language: sourceBot.language,
-        code: sourceBot.code,
-        autoStart: false,
-        // Do not clone original env vars; set safe defaults
-        environmentVariables: [
-          { key: 'BOT_TOKEN', value: '', isSecret: true },
-          { key: 'NODE_ENV', value: 'production', isSecret: false }
-        ],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
-
-      // Persist config and bot file(s)
-      await fs.writeJson(path.join(newBotDir, 'config.json'), newConfig, { spaces: 2 });
-      await this.createBotFile(newBotDir, newConfig);
-
-      // Initialize runtime maps
-      this.botLogs.set(newBotId, []);
-      this.botErrors.set(newBotId, []);
-      this.bots.set(newBotId, newConfig);
-
-      logger.info(`Cloned bot ${sourceBotId} -> ${newBotId}`);
-      return { success: true, bot: newConfig };
-    } catch (error) {
-      logger.error(`Error cloning bot ${sourceBotId}:`, error);
-      return { success: false, error: error.message };
-    }
-  }
-
   addLog(botId, level, message) {
     const logs = this.botLogs.get(botId) || [];
     const logEntry = {
