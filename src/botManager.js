@@ -170,25 +170,49 @@ class BotManager {
     const boilerplates = {
       javascript: `const TelegramBot = require('node-telegram-bot-api');
 
-// Get bot token from environment variable
+// Get bot token and mode from environment variables
 const token = process.env.BOT_TOKEN;
+const botMode = process.env.BOT_MODE || 'polling';
 
 if (!token) {
   console.error('❌ BOT_TOKEN environment variable is required');
   process.exit(1);
 }
 
-// Create a bot instance
-const bot = new TelegramBot(token, { polling: true });
+// Bot configuration based on mode
+let bot;
+if (botMode === 'webhook') {
+  // Webhook mode - requires HTTPS endpoint
+  const webhookUrl = process.env.WEBHOOK_URL;
+  if (!webhookUrl) {
+    console.error('❌ WEBHOOK_URL environment variable is required for webhook mode');
+    process.exit(1);
+  }
+  
+  bot = new TelegramBot(token, { 
+    webHook: { 
+      port: process.env.PORT || 8443,
+      host: '0.0.0.0'
+    }
+  });
+  
+  // Set webhook URL
+  bot.setWebHook(webhookUrl);
+  console.log('🌐 Webhook mode enabled:', webhookUrl);
+} else {
+  // Polling mode (default)
+  bot = new TelegramBot(token, { polling: true });
+  console.log('📡 Polling mode enabled');
+}
 
 // Message deduplication to prevent flooding on restart
 const processedMessages = new Set();
 const messageQueue = [];
 let isProcessingQueue = false;
 
-// Process queued messages with rate limiting
+// Process queued messages with rate limiting (polling mode only)
 async function processMessageQueue() {
-  if (isProcessingQueue || messageQueue.length === 0) return;
+  if (isProcessingQueue || messageQueue.length === 0 || botMode === 'webhook') return;
   
   isProcessingQueue = true;
   console.log(\`📨 Processing \${messageQueue.length} queued messages...\`);
@@ -215,19 +239,21 @@ async function handleMessage(msg) {
   const text = msg.text;
   const from = msg.from;
   
-  // Skip if message already processed
-  if (processedMessages.has(messageId)) {
+  // Skip if message already processed (polling mode only)
+  if (botMode === 'polling' && processedMessages.has(messageId)) {
     console.log(\`⏭️ Skipping already processed message: \${messageId}\`);
     return;
   }
   
-  // Mark message as processed
-  processedMessages.add(messageId);
-  
-  // Keep only last 1000 processed messages to prevent memory leaks
-  if (processedMessages.size > 1000) {
-    const firstKey = processedMessages.values().next().value;
-    processedMessages.delete(firstKey);
+  // Mark message as processed (polling mode only)
+  if (botMode === 'polling') {
+    processedMessages.add(messageId);
+    
+    // Keep only last 1000 processed messages to prevent memory leaks
+    if (processedMessages.size > 1000) {
+      const firstKey = processedMessages.values().next().value;
+      processedMessages.delete(firstKey);
+    }
   }
   
   console.log(\`📨 Received message from \${from.first_name} (\${from.id}): \${text}\`);
@@ -238,11 +264,11 @@ async function handleMessage(msg) {
     
     switch (command) {
       case '/start':
-        await bot.sendMessage(chatId, \`Hello \${from.first_name}! 👋\\nI'm your Telegram bot.\\n\\nCommands:\\n/help - Show this help\\n/status - Check bot status\\n/time - Current time\`);
+        await bot.sendMessage(chatId, \`Hello \${from.first_name}! 👋\\nI'm your Telegram bot.\\n\\nMode: \${botMode.toUpperCase()}\\n\\nCommands:\\n/help - Show this help\\n/status - Check bot status\\n/time - Current time\\n/mode - Show bot mode\`);
         break;
         
       case '/help':
-        await bot.sendMessage(chatId, \`🤖 Bot Commands:\\n\\n/start - Start the bot\\n/help - Show this help\\n/status - Check bot status\\n/time - Current time\\n\\nBot is running smoothly! ✅\`);
+        await bot.sendMessage(chatId, \`🤖 Bot Commands:\\n\\n/start - Start the bot\\n/help - Show this help\\n/status - Check bot status\\n/time - Current time\\n/mode - Show bot mode\\n\\nBot is running smoothly! ✅\`);
         break;
         
       case '/status':
@@ -250,7 +276,7 @@ async function handleMessage(msg) {
         const hours = Math.floor(uptime / 3600);
         const minutes = Math.floor((uptime % 3600) / 60);
         const seconds = Math.floor(uptime % 60);
-        await bot.sendMessage(chatId, \`🟢 Bot Status: ONLINE\\n⏱️ Uptime: \${hours}h \${minutes}m \${seconds}s\\n💾 Memory: \${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB\`);
+        await bot.sendMessage(chatId, \`🟢 Bot Status: ONLINE\\n📡 Mode: \${botMode.toUpperCase()}\\n⏱️ Uptime: \${hours}h \${minutes}m \${seconds}s\\n💾 Memory: \${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB\`);
         break;
         
       case '/time':
@@ -258,20 +284,27 @@ async function handleMessage(msg) {
         await bot.sendMessage(chatId, \`🕐 Current time: \${now.toLocaleString()}\`);
         break;
         
+      case '/mode':
+        const modeInfo = botMode === 'webhook' 
+          ? '🌐 Webhook Mode: Telegram sends messages directly to your bot. No message queuing.'
+          : '📡 Polling Mode: Bot continuously checks for new messages. May receive queued messages when restarted.';
+        await bot.sendMessage(chatId, \`📡 Bot Mode: \${botMode.toUpperCase()}\\n\\n\${modeInfo}\`);
+        break;
+        
       default:
         await bot.sendMessage(chatId, \`❓ Unknown command: \${command}\\nUse /help to see available commands.\`);
     }
   } else if (text) {
     // Echo non-command messages
-    await bot.sendMessage(chatId, \`You said: "\${text}"\\n\\nI'm an echo bot! 🗣️\`);
+    await bot.sendMessage(chatId, \`You said: "\${text}"\\n\\nI'm an echo bot! 🗣️\\nMode: \${botMode.toUpperCase()}\`);
   }
 }
 
 // Handle incoming messages
 bot.on('message', async (msg) => {
   try {
-    // If we're processing the queue, add to queue instead
-    if (isProcessingQueue) {
+    // If we're processing the queue (polling mode only), add to queue instead
+    if (botMode === 'polling' && isProcessingQueue) {
       messageQueue.push(msg);
       return;
     }
@@ -287,37 +320,55 @@ bot.on('message', async (msg) => {
   }
 });
 
-// Handle polling errors
-bot.on('polling_error', (error) => {
-  console.error('❌ Polling error:', error);
-});
+// Handle polling errors (polling mode only)
+if (botMode === 'polling') {
+  bot.on('polling_error', (error) => {
+    console.error('❌ Polling error:', error);
+  });
 
-// Handle bot start
-bot.on('polling_start', () => {
-  console.log('🤖 Bot started polling for messages...');
-  // Process any queued messages after a short delay
-  setTimeout(processMessageQueue, 2000);
-});
+  // Handle bot start (polling mode only)
+  bot.on('polling_start', () => {
+    console.log('🤖 Bot started polling for messages...');
+    // Process any queued messages after a short delay
+    setTimeout(processMessageQueue, 2000);
+  });
 
-// Handle bot stop
-bot.on('polling_stop', () => {
-  console.log('🛑 Bot stopped polling for messages.');
-});
+  // Handle bot stop (polling mode only)
+  bot.on('polling_stop', () => {
+    console.log('🛑 Bot stopped polling for messages.');
+  });
+}
+
+// Handle webhook errors (webhook mode only)
+if (botMode === 'webhook') {
+  bot.on('webhook_error', (error) => {
+    console.error('❌ Webhook error:', error);
+  });
+}
 
 // Graceful shutdown
 process.on('SIGINT', () => {
   console.log('🛑 Shutting down bot...');
-  bot.stopPolling();
+  if (botMode === 'polling') {
+    bot.stopPolling();
+  } else {
+    bot.deleteWebHook();
+  }
   process.exit(0);
 });
 
 process.on('SIGTERM', () => {
   console.log('🛑 Shutting down bot...');
-  bot.stopPolling();
+  if (botMode === 'polling') {
+    bot.stopPolling();
+  } else {
+    bot.deleteWebHook();
+  }
   process.exit(0);
 });
 
 console.log('🚀 Bot is starting...');
+console.log(\`📡 Mode: \${botMode.toUpperCase()}\`);
 console.log('📝 Use /start to begin chatting!');`,
 
       python: `import logging
