@@ -13,13 +13,15 @@ import {
   Plus,
   BarChart3,
   Users,
-  MessageSquare
+  MessageSquare,
+  Copy
 } from 'lucide-react';
 import { useBots } from '../contexts/BotContext';
 
 const Dashboard = () => {
-  const { bots, loading, startBot, stopBot, deleteBot } = useBots();
+  const { bots, loading, startBot, stopBot, deleteBot, cloneBot } = useBots();
   const [deletingBot, setDeletingBot] = useState(null);
+  const [cloningBot, setCloningBot] = useState(null);
 
   const runningBots = bots.filter(bot => bot.status === 'running');
   const stoppedBots = bots.filter(bot => bot.status === 'stopped' || !bot.status);
@@ -38,6 +40,21 @@ const Dashboard = () => {
       await stopBot(botId);
     } catch (error) {
       console.error('Failed to stop bot:', error);
+    }
+  };
+
+  const handleCloneBot = async (botId) => {
+    try {
+      setCloningBot(botId);
+      const newBot = await cloneBot(botId);
+      if (newBot?.id) {
+        // Navigate to the new bot editor
+        window.location.href = `/bot/${newBot.id}`;
+      }
+    } catch (error) {
+      console.error('Failed to clone bot:', error);
+    } finally {
+      setCloningBot(null);
     }
   };
 
@@ -211,6 +228,19 @@ const Dashboard = () => {
                     </Link>
                     
                     <button
+                      onClick={() => handleCloneBot(bot.id)}
+                      disabled={cloningBot === bot.id}
+                      className="btn-secondary"
+                      title="Clone Bot"
+                    >
+                      {cloningBot === bot.id ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
+                      ) : (
+                        <Copy size={16} />
+                      )}
+                    </button>
+                    
+                    <button
                       onClick={() => handleDeleteBot(bot.id)}
                       disabled={deletingBot === bot.id}
                       className="btn-danger"
@@ -229,6 +259,17 @@ const Dashboard = () => {
                   <div className="flex items-center space-x-1">
                     <Clock size={14} />
                     <span>Created {new Date(bot.createdAt).toLocaleDateString()}</span>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <span className="text-gray-400">ID:</span>
+                    <span className="font-mono truncate max-w-[220px]" title={bot.id}>{bot.id}</span>
+                    <button
+                      onClick={() => navigator.clipboard.writeText(bot.id)}
+                      className="text-gray-500 hover:text-gray-700"
+                      title="Copy bot ID"
+                    >
+                      <Copy size={14} />
+                    </button>
                   </div>
                   {bot.updatedAt && (
                     <div className="flex items-center space-x-1">

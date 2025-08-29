@@ -45,6 +45,7 @@ const BotEditor = () => {
   ]);
   const [showSecrets, setShowSecrets] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (botId) {
@@ -172,6 +173,17 @@ const BotEditor = () => {
       toast.error('Failed to save code');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleCopyCode = async () => {
+    try {
+      await navigator.clipboard.writeText(code || '');
+      setCopied(true);
+      toast.success('Code copied to clipboard');
+      setTimeout(() => setCopied(false), 1500);
+    } catch (e) {
+      toast.error('Failed to copy code');
     }
   };
 
@@ -363,6 +375,11 @@ const BotEditor = () => {
             {saving ? 'Saving...' : 'Save'}
           </button>
           
+          <button onClick={handleCopyCode} className="btn-secondary" title="Copy code">
+            <Copy size={16} />
+            {copied ? 'Copied' : 'Copy'}
+          </button>
+          
           {bot.status === 'running' ? (
             <button onClick={handleStop} className="btn-secondary">
               <Square size={16} />
@@ -379,6 +396,18 @@ const BotEditor = () => {
             <RotateCcw size={16} />
             Restart
           </button>
+          {bot && (
+            <div className="ml-3 flex items-center text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+              <span className="mr-2">ID: <span className="font-mono">{bot.id}</span></span>
+              <button
+                onClick={() => navigator.clipboard.writeText(bot.id)}
+                className="text-gray-600 hover:text-gray-800"
+                title="Copy bot ID"
+              >
+                <Copy size={12} />
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
