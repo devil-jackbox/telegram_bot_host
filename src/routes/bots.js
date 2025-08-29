@@ -109,21 +109,6 @@ router.delete('/:botId', async (req, res) => {
   }
 });
 
-// Clone a bot (without token and environment variables)
-router.post('/:botId/clone', async (req, res) => {
-  try {
-    const { botId } = req.params;
-    const result = await botManager.cloneBot(botId);
-    if (result.success) {
-      res.status(201).json(result);
-    } else {
-      res.status(400).json(result);
-    }
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
 // Start a bot
 router.post('/:botId/start', async (req, res) => {
   try {
