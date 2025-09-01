@@ -38,11 +38,36 @@ const BotEditor = () => {
   const [logs, setLogs] = useState([]);
   const [errors, setErrors] = useState([]);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [editorInstance, setEditorInstance] = useState(null);
   const [environmentVariables, setEnvironmentVariables] = useState([
     { key: 'BOT_TOKEN', value: '', isSecret: true },
     { key: 'NODE_ENV', value: 'production', isSecret: false },
     { key: 'BOT_MODE', value: 'polling', isSecret: false }
   ]);
+
+  // Common environment variable suggestions
+  const commonEnvVars = [
+    'BOT_TOKEN',
+    'NODE_ENV',
+    'BOT_MODE',
+    'WEBHOOK_URL',
+    'PORT',
+    'DATABASE_URL',
+    'REDIS_URL',
+    'API_KEY',
+    'SECRET_KEY',
+    'ACCESS_TOKEN',
+    'REFRESH_TOKEN',
+    'CLIENT_ID',
+    'CLIENT_SECRET',
+    'WEBHOOK_SECRET',
+    'LOG_LEVEL',
+    'DEBUG',
+    'ENVIRONMENT',
+    'REGION',
+    'TIMEZONE',
+    'LANGUAGE'
+  ];
   const [showSecrets, setShowSecrets] = useState(false);
   const [hasError, setHasError] = useState(false);
 
@@ -138,6 +163,14 @@ const BotEditor = () => {
         const botCode = fileData.content || '';
         setCode(botCode);
         setOriginalCode(botCode);
+        
+        // Scroll to bottom after code is loaded
+        setTimeout(() => {
+          if (editorInstance) {
+            const lineCount = editorInstance.getModel().getLineCount();
+            editorInstance.revealLine(lineCount);
+          }
+        }, 200);
         
         // Load environment variables if they exist
         if (currentBot.environmentVariables && Array.isArray(currentBot.environmentVariables)) {
@@ -281,6 +314,26 @@ const BotEditor = () => {
       console.error('Failed to save environment variables:', error);
       toast.error('Failed to save environment variables');
     }
+  };
+
+  const autoFillEnvironmentVariables = () => {
+    const defaultVars = [
+      { key: 'BOT_TOKEN', value: bot?.token || '', isSecret: true },
+      { key: 'NODE_ENV', value: 'production', isSecret: false },
+      { key: 'BOT_MODE', value: 'polling', isSecret: false },
+      { key: 'PORT', value: '3000', isSecret: false },
+      { key: 'LOG_LEVEL', value: 'info', isSecret: false },
+      { key: 'DEBUG', value: 'false', isSecret: false },
+      { key: 'WEBHOOK_URL', value: '', isSecret: false },
+      { key: 'WEBHOOK_SECRET', value: '', isSecret: true }
+    ];
+    
+    // Merge with existing variables, avoiding duplicates
+    const existingKeys = environmentVariables.map(v => v.key);
+    const newVars = defaultVars.filter(v => !existingKeys.includes(v.key));
+    
+    setEnvironmentVariables([...environmentVariables, ...newVars]);
+    toast.success('Default environment variables added!');
   };
 
   // Error Functions
@@ -436,26 +489,90 @@ const BotEditor = () => {
       {activeTab === 'editor' && (
         <div className={`card ${isFullscreen ? 'fixed inset-0 z-50 m-0 rounded-none' : ''}`}>
           <div className={`${isFullscreen ? 'h-full' : 'h-96'} overflow-hidden relative`}>
-            {/* Fullscreen toggle button */}
-            <button
-              onClick={toggleFullscreen}
-              className="absolute top-2 right-2 z-10 p-2 bg-gray-800 text-white rounded-md hover:bg-gray-700 transition-colors"
-              title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
-            >
-              {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
-            </button>
+            {/* Editor toolbar */}
+            <div className="absolute top-2 right-2 z-10 flex space-x-2">
+              <button
+                onClick={() => {
+                  if (editorInstance) {
+                    const lineCount = editorInstance.getModel().getLineCount();
+                    editorInstance.revealLine(lineCount);
+                  }
+                }}
+                className="p-2 bg-gray-800 text-white rounded-md hover:bg-gray-700 transition-colors"
+                title="Scroll to Bottom (Ctrl+End)"
+              >
+                <RotateCcw size={16} />
+              </button>
+              <button
+                onClick={() => {
+                  toast.success('Keyboard shortcuts: Ctrl+A (Select All), Ctrl+C (Copy), Ctrl+X (Cut), Ctrl+V (Paste), Ctrl+Z (Undo), Ctrl+Shift+Z (Redo), Ctrl+End (Scroll to Bottom)');
+                }}
+                className="p-2 bg-gray-800 text-white rounded-md hover:bg-gray-700 transition-colors"
+                title="Show Keyboard Shortcuts"
+              >
+                <FileText size={16} />
+              </button>
+              <button
+                onClick={toggleFullscreen}
+                className="p-2 bg-gray-800 text-white rounded-md hover:bg-gray-700 transition-colors"
+                title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+              >
+                {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+              </button>
+            </div>
             <Editor
               height="100%"
               language={getLanguage()}
               value={code}
               onChange={setCode}
               theme="vs-dark"
+              onMount={(editor, monaco) => {
+                setEditorInstance(editor);
+                
+                // Add custom keybindings
+                editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyA, () => {
+                  editor.trigger('keyboard', 'editor.action.selectAll', {});
+                });
+                
+                editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyC, () => {
+                  editor.trigger('keyboard', 'editor.action.clipboardCopyAction', {});
+                });
+                
+                editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyX, () => {
+                  editor.trigger('keyboard', 'editor.action.clipboardCutAction', {});
+                });
+                
+                editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyV, () => {
+                  editor.trigger('keyboard', 'editor.action.clipboardPasteAction', {});
+                });
+                
+                editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyZ, () => {
+                  editor.trigger('keyboard', 'undo', {});
+                });
+                
+                editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyZ, () => {
+                  editor.trigger('keyboard', 'redo', {});
+                });
+                
+                // Add scroll to bottom shortcut (Ctrl+End)
+                editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.End, () => {
+                  const lineCount = editor.getModel().getLineCount();
+                  editor.revealLine(lineCount);
+                });
+                
+                // Scroll to bottom when code is loaded
+                setTimeout(() => {
+                  const lineCount = editor.getModel().getLineCount();
+                  editor.revealLine(lineCount);
+                  editor.focus();
+                }, 100);
+              }}
               options={{
-                minimap: { enabled: true },
+                minimap: { enabled: false },
                 fontSize: 14,
                 lineNumbers: 'on',
                 roundedSelection: false,
-                scrollBeyondLastLine: false,
+                scrollBeyondLastLine: true,
                 automaticLayout: true,
                 wordWrap: 'off',
                 folding: true,
@@ -485,7 +602,11 @@ const BotEditor = () => {
                 suggestOnTriggerCharacters: true,
                 acceptSuggestionOnCommitCharacter: true,
                 acceptSuggestionOnEnter: 'on',
-                quickSuggestions: true,
+                quickSuggestions: {
+                  other: true,
+                  comments: true,
+                  strings: true
+                },
                 quickSuggestionsDelay: 10,
                 parameterHints: {
                   enabled: true,
@@ -494,6 +615,36 @@ const BotEditor = () => {
                 autoIndent: 'full',
                 formatOnPaste: true,
                 formatOnType: true,
+                // Enable keyboard shortcuts
+                multiCursorModifier: 'alt',
+                accessibilitySupport: 'on',
+                copyWithSyntaxHighlighting: true,
+                // Auto-completion settings
+                suggest: {
+                  insertMode: 'replace',
+                  showKeywords: true,
+                  showSnippets: true,
+                  showClasses: true,
+                  showFunctions: true,
+                  showVariables: true,
+                  showModules: true,
+                  showProperties: true,
+                  showEvents: true,
+                  showOperators: true,
+                  showUnits: true,
+                  showValues: true,
+                  showConstants: true,
+                  showEnums: true,
+                  showEnumMembers: true,
+                  showColors: true,
+                  showFiles: true,
+                  showReferences: true,
+                  showFolders: true,
+                  showTypeParameters: true,
+                  showWords: true,
+                  showUsers: true,
+                  showIssues: true,
+                }
               }}
             />
           </div>
@@ -514,6 +665,13 @@ const BotEditor = () => {
               >
                 {showSecrets ? <EyeOff size={16} /> : <Eye size={16} />}
                 {showSecrets ? 'Hide' : 'Show'} Secrets
+              </button>
+              <button
+                onClick={autoFillEnvironmentVariables}
+                className="btn-secondary"
+              >
+                <RefreshCw size={16} />
+                Auto-fill Defaults
               </button>
               <button
                 onClick={addEnvironmentVariable}
@@ -556,13 +714,21 @@ const BotEditor = () => {
             {environmentVariables.map((envVar, index) => (
               <div key={index} className="flex items-center space-x-3 p-4 border border-gray-200 rounded-lg">
                 <div className="flex-1">
-                  <input
-                    type="text"
-                    placeholder="Variable name (e.g., API_KEY)"
-                    value={envVar.key}
-                    onChange={(e) => updateEnvironmentVariable(index, 'key', e.target.value)}
-                    className="input mb-2"
-                  />
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Variable name (e.g., API_KEY)"
+                      value={envVar.key}
+                      onChange={(e) => updateEnvironmentVariable(index, 'key', e.target.value)}
+                      className="input mb-2"
+                      list={`env-var-${index}`}
+                    />
+                    <datalist id={`env-var-${index}`}>
+                      {commonEnvVars.map((suggestion, idx) => (
+                        <option key={idx} value={suggestion} />
+                      ))}
+                    </datalist>
+                  </div>
                   <div className="flex items-center space-x-2">
                     <input
                       type={showSecrets || !envVar.isSecret ? "text" : "password"}
