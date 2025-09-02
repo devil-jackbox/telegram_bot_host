@@ -93,6 +93,7 @@ class BotManager {
           { key: 'BOT_TOKEN', value: botData.token, isSecret: true },
           { key: 'NODE_ENV', value: 'production', isSecret: false },
           { key: 'BOT_MODE', value: 'polling', isSecret: false },
+          { key: 'PROTECT_CONTENT', value: 'false', isSecret: false },
           { key: 'PORT', value: '3000', isSecret: false },
           { key: 'LOG_LEVEL', value: 'info', isSecret: false },
           { key: 'DEBUG', value: 'false', isSecret: false }
