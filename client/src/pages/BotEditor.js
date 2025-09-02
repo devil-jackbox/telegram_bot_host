@@ -41,15 +41,20 @@ const BotEditor = () => {
   const [environmentVariables, setEnvironmentVariables] = useState([
     { key: 'BOT_TOKEN', value: '', isSecret: true },
     { key: 'NODE_ENV', value: 'production', isSecret: false },
-    { key: 'BOT_MODE', value: 'polling', isSecret: false }
+    { key: 'BOT_MODE', value: 'polling', isSecret: false },
+    { key: 'PROTECT_CONTENT', value: 'false', isSecret: false }
   ]);
   const [autoDetectEnabled, setAutoDetectEnabled] = useState(true);
+
+  // Detect Android to enable native long-press selection by using a textarea fallback
+  const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent || '');
 
   // Common environment variable suggestions
   const commonEnvVars = [
     'BOT_TOKEN',
     'NODE_ENV',
     'BOT_MODE',
+    'PROTECT_CONTENT',
     'WEBHOOK_URL',
     'PORT',
     'DATABASE_URL',
@@ -638,85 +643,86 @@ const BotEditor = () => {
             </button>
 
 
-            <Editor
-              height="100%"
-              language={getLanguage()}
-              value={code}
-              onChange={setCode}
-              theme="vs-dark"
-              onMount={(editor, monaco) => {
-                setEditorInstance(editor);
-                
-
-                
-
-                
-                // Focus editor when loaded
-                setTimeout(() => {
-                  editor.focus();
-                }, 100);
-              }}
-              options={{
-                minimap: { enabled: false },
-                fontSize: 14,
-                lineNumbers: 'on',
-                roundedSelection: false,
-                scrollBeyondLastLine: true,
-                automaticLayout: true,
-                wordWrap: 'off',
-                folding: true,
-                lineDecorationsWidth: 10,
-                lineNumbersMinChars: 3,
-                scrollbar: {
-                  vertical: 'visible',
-                  horizontal: 'visible',
-                  verticalScrollbarSize: 12,
-                  horizontalScrollbarSize: 12,
-                  useShadows: true,
-                },
-                overviewRulerBorder: true,
-                overviewRulerLanes: 3,
-                fixedOverflowWidgets: true,
-                renderWhitespace: 'selection',
-                renderControlCharacters: false,
-                renderLineHighlight: 'all',
-                selectOnLineNumbers: false,
-                glyphMargin: true,
-                useTabStops: false,
-                insertSpaces: true,
-                tabSize: 2,
-                detectIndentation: true,
-                trimAutoWhitespace: true,
-                largeFileOptimizations: true,
-                parameterHints: {
-                  enabled: true,
-                  cycle: true,
-                },
-                autoIndent: 'full',
-                formatOnPaste: true,
-                formatOnType: true,
-                // Enable keyboard shortcuts
-                multiCursorModifier: 'alt',
-                accessibilitySupport: 'on',
-                copyWithSyntaxHighlighting: true,
-                // Mobile-friendly text selection
-                wordBasedSuggestions: 'off',
-                wordWrap: 'off',
-                wordWrapColumn: 80,
-                wrappingIndent: 'none',
-                // Better text selection for mobile
-                selectionClipboard: false,
-                contextmenu: true,
-                // Mobile text selection improvements
-                mouseWheelZoom: false,
-                disableLayerHinting: true,
-                // Disable features that interfere with text selection
-                quickSuggestions: false,
-                suggestOnTriggerCharacters: false,
-                acceptSuggestionOnCommitCharacter: false,
-                acceptSuggestionOnEnter: 'off'
-              }}
-            />
+            {isAndroid ? (
+              <textarea
+                className="w-full h-full p-4 bg-gray-900 text-white font-mono text-sm outline-none resize-none"
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                spellCheck={false}
+                autoCorrect="off"
+                autoCapitalize="off"
+              />
+            ) : (
+              <Editor
+                height="100%"
+                language={getLanguage()}
+                value={code}
+                onChange={setCode}
+                theme="vs-dark"
+                onMount={(editor, monaco) => {
+                  setEditorInstance(editor);
+                  // Focus editor when loaded
+                  setTimeout(() => {
+                    editor.focus();
+                  }, 100);
+                }}
+                options={{
+                  minimap: { enabled: false },
+                  fontSize: 14,
+                  lineNumbers: 'on',
+                  roundedSelection: false,
+                  scrollBeyondLastLine: true,
+                  automaticLayout: true,
+                  wordWrap: 'off',
+                  folding: true,
+                  lineDecorationsWidth: 10,
+                  lineNumbersMinChars: 3,
+                  scrollbar: {
+                    vertical: 'visible',
+                    horizontal: 'visible',
+                    verticalScrollbarSize: 12,
+                    horizontalScrollbarSize: 12,
+                    useShadows: true,
+                  },
+                  overviewRulerBorder: true,
+                  overviewRulerLanes: 3,
+                  fixedOverflowWidgets: true,
+                  renderWhitespace: 'selection',
+                  renderControlCharacters: false,
+                  renderLineHighlight: 'all',
+                  selectOnLineNumbers: false,
+                  glyphMargin: true,
+                  useTabStops: false,
+                  insertSpaces: true,
+                  tabSize: 2,
+                  detectIndentation: true,
+                  trimAutoWhitespace: true,
+                  largeFileOptimizations: true,
+                  parameterHints: {
+                    enabled: true,
+                    cycle: true,
+                  },
+                  autoIndent: 'full',
+                  formatOnPaste: true,
+                  formatOnType: true,
+                  // Enable keyboard shortcuts
+                  multiCursorModifier: 'alt',
+                  accessibilitySupport: 'on',
+                  copyWithSyntaxHighlighting: true,
+                  // Mobile-friendly text selection
+                  selectionClipboard: false,
+                  contextmenu: true,
+                  // Mobile text selection improvements
+                  mouseWheelZoom: false,
+                  disableLayerHinting: true,
+                  // Disable features that interfere with text selection
+                  quickSuggestions: false,
+                  suggestOnTriggerCharacters: false,
+                  acceptSuggestionOnCommitCharacter: false,
+                  acceptSuggestionOnEnter: 'off'
+                }}
+              />
+            )}
           </div>
         </div>
       )}
