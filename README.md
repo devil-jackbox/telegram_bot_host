@@ -1,247 +1,173 @@
 # Telegram Bot Hosting Platform
 
-A modern, web-based Telegram bot hosting platform designed for developers who want full control over their bot code. Deploy and manage JavaScript Telegram bots with real-time monitoring, debugging, and environment variable management.
+A modern, web-based platform to create, run, and manage Telegram bots with your own code. It’s optimized for JavaScript bots, offers a powerful in-browser editor, and gives you real‑time logs, errors, and environment variable management.
 
-## 🚀 Features
+## 🔑 Highlights
 
-### Core Features
-- **JavaScript Bot Support**: Create and deploy JavaScript Telegram bots
-- **Web-based Code Editor**: Monaco Editor with syntax highlighting and fullscreen mode
-- **Real-time Bot Management**: Start, stop, and restart bots with one click
-- **Live Error Monitoring**: Real-time error tracking with copy-to-clipboard functionality
-- **Environment Variables**: Secure management of bot configuration and secrets
-- **Individual Bot Logs**: Separate log viewing for each bot
-- **Auto-start Capability**: Bots can automatically start when the platform launches
-- **Mobile-friendly UI**: Responsive design that works on tablets and phones
+- **JavaScript bot runtime** using `node-telegram-bot-api`
+- **Web IDE** with Monaco Editor, fullscreen mode, and Android-friendly long‑press selection (textarea fallback on Android)
+- **Real-time control**: start/stop/restart bots, instant status updates via Socket.IO
+- **Live logs and errors** per bot, with copy-to-clipboard
+- **Environment variables** with auto-detection from your code and manual editing
+- **Process isolation**: each bot runs in its own process with PID tracking
+- **Docker and Railway deployment** ready
 
-### Advanced Features
-- **Socket.IO Integration**: Real-time updates and communication
-- **Process Management**: Robust bot process lifecycle management with orphaned process cleanup
-- **Message Deduplication**: Prevents flooding when bots restart
-- **Rate Limiting**: Built-in protection against API abuse
-- **Railway Deployment Ready**: One-click deployment to Railway
-- **Graceful Shutdown**: Proper cleanup of all bot processes
+## 🧱 Tech Stack
 
-## 🛠️ Technology Stack
+- Backend: Node.js, Express, Socket.IO
+- Frontend: React, Tailwind CSS, Monaco Editor
+- Telegram: `node-telegram-bot-api`
+- Packaging: Docker (Node 18 Alpine), Railway
 
-- **Backend**: Node.js, Express, Socket.IO
-- **Frontend**: React, Monaco Editor, Tailwind CSS
-- **Bot Runtime**: JavaScript with node-telegram-bot-api
-- **Deployment**: Railway, Docker support
-- **Process Management**: Child process isolation with PID tracking
-
-## 📦 Installation
-
-### Prerequisites
-- Node.js 18+ 
-- npm or yarn
-- Git
-
-### Local Development
-
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd telegram-bot-hosting-platform
-   ```
-
-2. **Install dependencies**
-   ```bash
-   npm install
-   cd client && npm install
-   ```
-
-3. **Set up environment variables**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your configuration
-   ```
-
-4. **Start the development server**
-   ```bash
-   npm run dev
-   ```
-
-5. **Open your browser**
-   ```
-   http://localhost:3000
-   ```
-
-### Railway Deployment
-
-1. **Connect your repository to Railway**
-   - Go to [Railway.app](https://railway.app)
-   - Create a new project
-   - Connect your GitHub repository
-
-2. **Set environment variables**
-   - Add the variables from `.env.example` to your Railway project
-   - Set `NODE_ENV=production`
-
-3. **Deploy**
-   - Railway will automatically detect the Docker configuration and deploy
-   - The build process will install dependencies and build the React app
-
-## 🎯 Usage
-
-### Creating Your First Bot
-
-1. **Get a Bot Token**
-   - Message [@BotFather](https://t.me/botfather) on Telegram
-   - Create a new bot and get the token
-
-2. **Create Bot in Platform**
-   - Click "Create Bot" button
-   - Enter bot name and token
-   - Add custom JavaScript code or use the template
-   - Enable auto-start if desired
-
-3. **Configure Environment Variables**
-   - Go to the Environment Variables tab
-   - Add your bot token and other configuration
-   - Set variables as public or secret
-
-4. **Start Your Bot**
-   - Click the "Start" button
-   - Monitor logs and errors in real-time
-
-### Bot Management
-
-- **Dashboard**: Overview of all bots with status indicators
-- **Code Editor**: Full-featured editor with syntax highlighting and fullscreen mode
-- **Environment Variables**: Secure management of bot configuration
-- **Errors Tab**: Real-time error monitoring with copy functionality
-- **Logs**: Real-time log viewing with filtering options
-- **Settings**: Platform configuration and bot settings
-
-## 🏗️ Architecture
-
-### Backend (Node.js/Express)
-- **BotManager**: Handles bot lifecycle and process management
-- **Socket.IO**: Real-time communication and updates
-- **Process Isolation**: Each bot runs in its own process with PID tracking
-- **API Routes**: RESTful endpoints for bot operations
-- **Security**: Rate limiting, CORS, and input validation
-
-### Frontend (React)
-- **Context API**: State management for bots and socket connection
-- **Monaco Editor**: Professional code editing experience with fullscreen support
-- **Tailwind CSS**: Modern, responsive UI design
-- **Real-time Updates**: Live status, log, and error updates
-
-### Bot Execution
-- **Process Isolation**: Each bot runs in its own detached process
-- **Message Deduplication**: Prevents duplicate responses on restart
-- **Rate Limiting**: Built-in delays to prevent API flooding
-- **Error Handling**: Graceful error recovery and logging
-- **Resource Management**: Memory and CPU monitoring
-
-## 🔧 Configuration
-
-### Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `PORT` | Server port | `3000` |
-| `NODE_ENV` | Environment mode | `development` |
-| `LOG_LEVEL` | Logging level | `info` |
-| `CORS_ORIGIN` | CORS allowed origins | `*` |
-| `MAX_BOTS_PER_USER` | Maximum bots per user | `10` |
-| `MAX_LOGS_PER_BOT` | Maximum logs per bot | `1000` |
-| `MAX_ERRORS_PER_BOT` | Maximum errors per bot | `100` |
-
-### Bot Configuration
-
-Each bot has its own configuration file (`config.json`) containing:
-- Bot ID and name
-- Telegram token
-- Environment variables
-- Auto-start preference
-- Creation and update timestamps
-
-## 📁 Project Structure
+## 📂 Project Structure
 
 ```
 telegram-bot-hosting-platform/
-├── server.js                 # Main server entry point
-├── package.json             # Backend dependencies
+├── server.js                 # Main server entry point (Express + Socket.IO)
 ├── src/
-│   ├── botManager.js        # Bot lifecycle management
-│   ├── routes/              # API routes
-│   │   ├── bots.js         # Bot CRUD operations
-│   │   ├── files.js        # File management
-│   │   └── logs.js         # Log management
-│   └── utils/
-│       └── logger.js       # Winston logger configuration
-├── client/                  # React frontend
-│   ├── package.json        # Frontend dependencies
+│   ├── botManager.js        # Bot lifecycle and process mgmt
+│   ├── routes/
+│   │   ├── bots.js          # Create/Update/Delete/Start/Stop
+│   │   ├── files.js         # Read/Write bot files
+│   │   └── logs.js          # Retrieve logs
+│   └── utils/logger.js      # Winston logger
+├── client/                  # React app
 │   ├── src/
-│   │   ├── components/     # React components
-│   │   ├── contexts/       # React contexts
-│   │   ├── pages/          # Page components
-│   │   └── index.js        # Frontend entry point
-│   └── public/             # Static assets
-├── bots/                   # Bot files directory
-├── logs/                   # Application logs
-├── Dockerfile             # Docker configuration
-└── railway.json           # Railway deployment config
+│   │   ├── pages/           # Dashboard, BotEditor, Logs, Errors, Settings
+│   │   ├── components/      # Layout, modals, etc.
+│   │   └── contexts/        # BotContext, SocketContext
+│   └── public/
+├── Dockerfile               # Docker build (Node 18 Alpine)
+├── railway.json             # Railway service config
+└── start.sh                 # App start script
+```
+
+## ✨ Features (Detailed)
+
+- **Bot creation**: Name + token + optional initial code. Platform stores a per-bot folder with `bot.js` and `config.json`.
+- **Code editor**:
+  - Monaco Editor on desktop; textarea fallback on Android enables native long‑press selection (copy/cut/paste/select).
+  - Fullscreen toggle.
+  - Auto layout, line numbers, dark theme.
+- **Environment variables**:
+  - Auto‑detects variables used in your code (`process.env.VAR_NAME`).
+  - Add/remove/edit variables. Mark as secret to obscure value in the UI.
+  - No special handling for `PROTECT_CONTENT`; it’s treated like any other variable and only appears if you add it or your code references it.
+- **Logs & errors**: Real-time streaming; copy errors with one tap/click.
+- **Lifecycle control**: Start/Stop/Restart with immediate status updates.
+- **Resiliency**: Message de‑duplication and basic rate limiting in the default bot template.
+
+## 🧪 Local Development
+
+### Prerequisites
+
+- Node.js 18+
+- npm
+
+### Steps
+
+1) Clone and install
+```bash
+git clone <repository-url>
+cd telegram-bot-hosting-platform
+npm install
+cd client && npm install && cd ..
+```
+
+2) Start (concurrently runs server and client)
+```bash
+npm run dev
+```
+
+3) Open the app
+```
+http://localhost:3000
+```
+
+## ⚙️ Platform Environment Variables
+
+These configure the hosting platform itself (not your bot code):
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `PORT` | Server port | `3001` (Dockerfile) |
+| `NODE_ENV` | Node environment | `production` in Docker |
+| `LOG_LEVEL` | Logger level | `info` |
+| `HOST` | Bind host | `0.0.0.0` |
+
+Note: The platform applies sane defaults at runtime; you can override them via deployment env vars.
+
+## 🤖 Creating and Running a Bot
+
+1) Obtain a token from [@BotFather](https://t.me/botfather).
+2) Click “Create Bot”, fill name/token, and optionally paste your code or start with the template.
+3) Open the bot’s page > Code Editor to edit and save.
+4) Use Environment Variables tab to add variables your code expects. The UI auto‑detects variables referenced in your code (via `process.env.*`).
+5) Start the bot. Watch Logs and Errors in real time.
+
+### Example: Using an env var in your code
+```js
+const shouldProtect = String(process.env.PROTECT_CONTENT || 'false').toLowerCase() === 'true';
+bot.sendMessage(chatId, 'Hello', { protect_content: shouldProtect });
 ```
 
 ## 🚀 Deployment
 
 ### Railway (Recommended)
 
-1. **Fork this repository**
-2. **Connect to Railway**
-3. **Set environment variables**
-4. **Deploy automatically**
+1) Fork this repo and connect it to Railway.
+2) Add platform env vars as needed (e.g., `PORT`, `LOG_LEVEL`).
+3) Deploy. Railway builds the Docker image and starts the app.
 
-The platform is optimized for Railway's free tier with:
-- Efficient resource usage
-- Automatic process cleanup
-- Graceful shutdown handling
-- Optimized for cold starts
-
-### Docker Deployment
+### Docker (Manual)
 ```bash
 docker build -t telegram-bot-platform .
-docker run -p 3000:3000 telegram-bot-platform
+docker run -p 3001:3001 --env PORT=3001 telegram-bot-platform
 ```
 
-## 🔒 Security
+The Dockerfile uses Node 18 Alpine and installs only `tzdata` and `git` to keep the image slim. If you add native modules that require compilation, consider a multi‑stage build that installs `build-base` for the build stage.
 
-- **Rate Limiting**: Prevents API abuse
-- **Input Validation**: Sanitizes all user inputs
-- **CORS Protection**: Configurable cross-origin requests
-- **Process Isolation**: Bots run in separate processes
-- **Environment Variables**: Secure secret management
-- **Error Handling**: Graceful error recovery
+## 🔌 API Endpoints (High Level)
 
-## 🤝 Contributing
+- `GET /api/bots` – List bots
+- `POST /api/bots` – Create bot (name, token, code?, autoStart?)
+- `PUT /api/bots/:botId` – Update bot metadata or env vars
+- `DELETE /api/bots/:botId` – Delete bot
+- `GET /api/bots/:botId/file` / `PUT /api/bots/:botId/file` – Read/write code
+- `POST /api/bots/:botId/start` / `POST /api/bots/:botId/stop` – Control runtime
+- `GET /api/bots/:botId/logs` – Retrieve logs
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
+## 🧩 Editor Tips
+
+- Android: the editor uses a textarea fallback for native long‑press selection with the familiar copy/cut/paste/select popup.
+- Desktop: Monaco Editor with dark theme, line numbers, folding, and fullscreen.
+
+## 🛡️ Security
+
+- CORS + Helmet + rate limiting
+- Process isolation per bot (child process)
+- Secrets masking in the UI for marked env variables
+
+## 🧰 Troubleshooting
+
+- Docker build fails installing compilers or Python on Alpine:
+  - This repo’s Dockerfile intentionally avoids heavy toolchains. If you add native deps, switch to a multi‑stage build and install `apk add --no-cache build-base` in the build stage only.
+- Bot doesn’t start:
+  - Check the Errors tab for stack traces.
+  - Ensure required env variables (e.g., `BOT_TOKEN`) are present.
+- Env variable not appearing:
+  - The UI detects variables used in code (via `process.env.*`). You can also add any variable manually.
 
 ## 📝 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+MIT License. See `LICENSE` if present.
 
-## 🆘 Support
+## 🙌 Acknowledgments
 
-- **Issues**: Create an issue on GitHub
-- **Documentation**: Check this README and inline code comments
+- Monaco Editor
+- Tailwind CSS
+- Socket.IO
+- Railway
+- node-telegram-bot-api
 
-## 🎉 Acknowledgments
-
-- [Monaco Editor](https://microsoft.github.io/monaco-editor/) for the code editor
-- [Tailwind CSS](https://tailwindcss.com/) for the UI framework
-- [Socket.IO](https://socket.io/) for real-time communication
-- [Railway](https://railway.app/) for deployment platform
-- [node-telegram-bot-api](https://github.com/yagop/node-telegram-bot-api) for Telegram bot functionality
-
----
-
-**Made with ❤️ for the Telegram bot developer community**
+— Built for Telegram bot developers who want speed, control, and simplicity.
