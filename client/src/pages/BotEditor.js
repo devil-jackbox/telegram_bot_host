@@ -428,9 +428,9 @@ const BotEditor = () => {
 
     // Convert to array and filter out common Node.js built-ins
     const commonBuiltins = ['NODE_ENV', 'PATH', 'HOME', 'USER', 'PWD', 'SHELL', 'LANG', 'TZ'];
-    const filteredVars = Array.from(detectedVars).filter(varName => 
-      !commonBuiltins.includes(varName) && varName.length > 1
-    );
+    const filteredVars = Array.from(detectedVars)
+      .filter(varName => !commonBuiltins.includes(varName) && varName.length > 1)
+      .filter(varName => varName !== 'PROTECT_CONTENT');
 
     if (filteredVars.length === 0) {
       toast.error('No environment variables detected in code');
@@ -466,7 +466,9 @@ const BotEditor = () => {
 
     // Merge with existing variables, avoiding duplicates
     const existingKeys = environmentVariables.map(v => v.key);
-    const uniqueNewVars = newVars.filter(v => !existingKeys.includes(v.key));
+    const uniqueNewVars = newVars
+      .filter(v => v.key !== 'PROTECT_CONTENT')
+      .filter(v => !existingKeys.includes(v.key));
     
     if (uniqueNewVars.length === 0) {
       toast.info('All detected environment variables already exist');
