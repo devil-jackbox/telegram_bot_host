@@ -15,7 +15,6 @@ import {
   Minimize2,
   Plus,
   Trash2,
-  Copy,
   RefreshCw,
   Eye,
   EyeOff
@@ -39,8 +38,6 @@ const BotEditor = () => {
   const [errors, setErrors] = useState([]);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [editorInstance, setEditorInstance] = useState(null);
-  const [showContextMenu, setShowContextMenu] = useState(false);
-  const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 });
   const [environmentVariables, setEnvironmentVariables] = useState([
     { key: 'BOT_TOKEN', value: '', isSecret: true },
     { key: 'NODE_ENV', value: 'production', isSecret: false },
@@ -149,22 +146,7 @@ const BotEditor = () => {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [activeTab]);
 
-  // Close context menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = () => {
-      setShowContextMenu(false);
-    };
 
-    if (showContextMenu) {
-      document.addEventListener('click', handleClickOutside);
-      document.addEventListener('touchstart', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('click', handleClickOutside);
-      document.removeEventListener('touchstart', handleClickOutside);
-    };
-  }, [showContextMenu]);
 
   // Auto-detect environment variables when code changes (debounced)
   useEffect(() => {
@@ -242,13 +224,7 @@ const BotEditor = () => {
         setCode(botCode);
         setOriginalCode(botCode);
         
-        // Scroll to bottom after code is loaded
-        setTimeout(() => {
-          if (editorInstance) {
-            const lineCount = editorInstance.getModel().getLineCount();
-            editorInstance.revealLine(lineCount);
-          }
-        }, 200);
+
         
         // Load environment variables if they exist
         if (currentBot.environmentVariables && Array.isArray(currentBot.environmentVariables)) {
@@ -652,210 +628,19 @@ const BotEditor = () => {
       {activeTab === 'editor' && (
         <div className={`card ${isFullscreen ? 'fixed inset-0 z-50 m-0 rounded-none' : ''}`}>
           <div className={`${isFullscreen ? 'h-full' : 'h-96'} overflow-hidden relative`}>
-            {/* Editor toolbar */}
-            <div className="absolute top-2 right-2 z-10 flex space-x-2">
-              <button
-                onClick={() => {
-                  if (editorInstance) {
-                    const lineCount = editorInstance.getModel().getLineCount();
-                    editorInstance.revealLine(lineCount);
-                  }
-                }}
-                className="p-2 bg-gray-800 text-white rounded-md hover:bg-gray-700 transition-colors"
-                title="Scroll to Bottom (Ctrl+End)"
-              >
-                <RotateCcw size={16} />
-              </button>
-              <button
-                onClick={() => {
-                  toast.success('Keyboard shortcuts: Ctrl+A (Select All), Ctrl+C (Copy), Ctrl+X (Cut), Ctrl+V (Paste), Ctrl+Z (Undo), Ctrl+Shift+Z (Redo), Ctrl+End (Scroll to Bottom)');
-                }}
-                className="p-2 bg-gray-800 text-white rounded-md hover:bg-gray-700 transition-colors"
-                title="Show Keyboard Shortcuts"
-              >
-                <FileText size={16} />
-              </button>
-              <button
-                onClick={toggleFullscreen}
-                className="p-2 bg-gray-800 text-white rounded-md hover:bg-gray-700 transition-colors"
-                title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
-              >
-                {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
-              </button>
-            </div>
+            {/* Fullscreen toggle button */}
+            <button
+              onClick={toggleFullscreen}
+              className="absolute top-2 right-2 z-10 p-2 bg-gray-800 text-white rounded-md hover:bg-gray-700 transition-colors"
+              title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+            >
+              {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+            </button>
 
-            {/* Mobile-friendly action buttons */}
-            <div className="absolute top-2 left-2 z-10 flex space-x-2">
-              <button
-                onClick={() => {
-                  if (editorInstance) {
-                    editorInstance.trigger('keyboard', 'editor.action.selectAll', {});
-                    toast.success('All text selected');
-                  }
-                }}
-                className="p-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-xs font-medium"
-                title="Select All"
-              >
-                Select All
-              </button>
-              <button
-                onClick={() => {
-                  if (editorInstance) {
-                    const selection = editorInstance.getSelection();
-                    if (selection.isEmpty()) {
-                      toast.error('No text selected');
-                      return;
-                    }
-                    editorInstance.trigger('keyboard', 'editor.action.clipboardCopyAction', {});
-                    toast.success('Text copied to clipboard');
-                  }
-                }}
-                className="p-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-xs font-medium"
-                title="Copy Selected"
-              >
-                Copy
-              </button>
-              <button
-                onClick={() => {
-                  if (editorInstance) {
-                    const selection = editorInstance.getSelection();
-                    if (selection.isEmpty()) {
-                      toast.error('No text selected');
-                      return;
-                    }
-                    editorInstance.trigger('keyboard', 'editor.action.clipboardCutAction', {});
-                    toast.success('Text cut to clipboard');
-                  }
-                }}
-                className="p-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 transition-colors text-xs font-medium"
-                title="Cut Selected"
-              >
-                Cut
-              </button>
-              <button
-                onClick={() => {
-                  if (editorInstance) {
-                    navigator.clipboard.readText().then(text => {
-                      editorInstance.trigger('keyboard', 'editor.action.clipboardPasteAction', {});
-                      toast.success('Text pasted from clipboard');
-                    }).catch(() => {
-                      toast.error('Failed to read clipboard');
-                    });
-                  }
-                }}
-                className="p-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors text-xs font-medium"
-                title="Paste from Clipboard"
-              >
-                Paste
-              </button>
-            </div>
 
-            {/* Mobile Context Menu */}
-            {showContextMenu && (
-              <div 
-                className="fixed z-50 bg-white border border-gray-300 rounded-lg shadow-lg p-2 min-w-32"
-                style={{
-                  left: contextMenuPosition.x,
-                  top: contextMenuPosition.y,
-                  transform: 'translate(-50%, -100%)'
-                }}
-              >
-                <div className="space-y-1">
-                  <button
-                    onClick={() => {
-                      if (editorInstance) {
-                        editorInstance.trigger('keyboard', 'editor.action.selectAll', {});
-                        toast.success('All text selected');
-                      }
-                      setShowContextMenu(false);
-                    }}
-                    className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded flex items-center"
-                  >
-                    <Copy size={14} className="mr-2" />
-                    Select All
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (editorInstance) {
-                        const selection = editorInstance.getSelection();
-                        if (selection.isEmpty()) {
-                          toast.error('No text selected');
-                          return;
-                        }
-                        editorInstance.trigger('keyboard', 'editor.action.clipboardCopyAction', {});
-                        toast.success('Text copied');
-                      }
-                      setShowContextMenu(false);
-                    }}
-                    className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded flex items-center"
-                  >
-                    <Copy size={14} className="mr-2" />
-                    Copy
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (editorInstance) {
-                        const selection = editorInstance.getSelection();
-                        if (selection.isEmpty()) {
-                          toast.error('No text selected');
-                          return;
-                        }
-                        editorInstance.trigger('keyboard', 'editor.action.clipboardCutAction', {});
-                        toast.success('Text cut');
-                      }
-                      setShowContextMenu(false);
-                    }}
-                    className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded flex items-center"
-                  >
-                    <Copy size={14} className="mr-2" />
-                    Cut
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (editorInstance) {
-                        navigator.clipboard.readText().then(() => {
-                          editorInstance.trigger('keyboard', 'editor.action.clipboardPasteAction', {});
-                          toast.success('Text pasted');
-                        }).catch(() => {
-                          toast.error('Failed to read clipboard');
-                        });
-                      }
-                      setShowContextMenu(false);
-                    }}
-                    className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded flex items-center"
-                  >
-                    <Copy size={14} className="mr-2" />
-                    Paste
-                  </button>
-                  <hr className="border-gray-200" />
-                  <button
-                    onClick={() => {
-                      if (editorInstance) {
-                        editorInstance.trigger('keyboard', 'undo', {});
-                        toast.success('Undo');
-                      }
-                      setShowContextMenu(false);
-                    }}
-                    className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded flex items-center"
-                  >
-                    <RotateCcw size={14} className="mr-2" />
-                    Undo
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (editorInstance) {
-                        editorInstance.trigger('keyboard', 'redo', {});
-                        toast.success('Redo');
-                      }
-                      setShowContextMenu(false);
-                    }}
-                    className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded flex items-center"
-                  >
-                    <RotateCcw size={14} className="mr-2" />
-                    Redo
-                  </button>
-                </div>
-              </div>
+
+
+              
             )}
 
             <Editor
@@ -867,85 +652,12 @@ const BotEditor = () => {
               onMount={(editor, monaco) => {
                 setEditorInstance(editor);
                 
-                // Add custom keybindings
-                editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyA, () => {
-                  editor.trigger('keyboard', 'editor.action.selectAll', {});
-                });
+
                 
-                editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyC, () => {
-                  editor.trigger('keyboard', 'editor.action.clipboardCopyAction', {});
-                });
+
                 
-                editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyX, () => {
-                  editor.trigger('keyboard', 'editor.action.clipboardCutAction', {});
-                });
-                
-                editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyV, () => {
-                  editor.trigger('keyboard', 'editor.action.clipboardPasteAction', {});
-                });
-                
-                editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyZ, () => {
-                  editor.trigger('keyboard', 'undo', {});
-                });
-                
-                editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyZ, () => {
-                  editor.trigger('keyboard', 'redo', {});
-                });
-                
-                // Add scroll to bottom shortcut (Ctrl+End)
-                editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.End, () => {
-                  const lineCount = editor.getModel().getLineCount();
-                  editor.revealLine(lineCount);
-                });
-                
-                // Add mobile context menu support
-                let longPressTimer = null;
-                let isLongPress = false;
-                
-                // Handle touch events for mobile context menu
-                const handleTouchStart = (e) => {
-                  longPressTimer = setTimeout(() => {
-                    isLongPress = true;
-                    const touch = e.touches[0];
-                    const rect = editor.getDomNode().getBoundingClientRect();
-                    setContextMenuPosition({
-                      x: touch.clientX - rect.left,
-                      y: touch.clientY - rect.top
-                    });
-                    setShowContextMenu(true);
-                  }, 500); // 500ms for long press
-                };
-                
-                const handleTouchEnd = () => {
-                  if (longPressTimer) {
-                    clearTimeout(longPressTimer);
-                    longPressTimer = null;
-                  }
-                  // Don't hide context menu immediately to allow user to interact
-                  setTimeout(() => {
-                    if (!isLongPress) {
-                      setShowContextMenu(false);
-                    }
-                  }, 100);
-                };
-                
-                const handleTouchMove = () => {
-                  if (longPressTimer) {
-                    clearTimeout(longPressTimer);
-                    longPressTimer = null;
-                  }
-                };
-                
-                // Add touch event listeners
-                const editorDom = editor.getDomNode();
-                editorDom.addEventListener('touchstart', handleTouchStart, { passive: false });
-                editorDom.addEventListener('touchend', handleTouchEnd, { passive: false });
-                editorDom.addEventListener('touchmove', handleTouchMove, { passive: false });
-                
-                // Scroll to bottom when code is loaded
+                // Focus editor when loaded
                 setTimeout(() => {
-                  const lineCount = editor.getModel().getLineCount();
-                  editor.revealLine(lineCount);
                   editor.focus();
                 }, 100);
               }}
