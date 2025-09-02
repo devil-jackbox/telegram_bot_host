@@ -232,7 +232,12 @@ const BotEditor = () => {
         
         // Load environment variables if they exist
         if (currentBot.environmentVariables && Array.isArray(currentBot.environmentVariables)) {
-          setEnvironmentVariables(currentBot.environmentVariables);
+          // Hide PROTECT_CONTENT unless it is referenced in code
+          const referencesProtect = /process\.env\.PROTECT_CONTENT|process\.env\[['"`]PROTECT_CONTENT['"`]\]/.test(botCode);
+          const filtered = referencesProtect
+            ? currentBot.environmentVariables
+            : currentBot.environmentVariables.filter(v => v.key !== 'PROTECT_CONTENT');
+          setEnvironmentVariables(filtered);
         } else {
           // Set default environment variables
           setEnvironmentVariables([
