@@ -638,11 +638,6 @@ const BotEditor = () => {
             </button>
 
 
-
-
-              
-            )}
-
             <Editor
               height="100%"
               language={getLanguage()}
@@ -685,7 +680,7 @@ const BotEditor = () => {
                 renderWhitespace: 'selection',
                 renderControlCharacters: false,
                 renderLineHighlight: 'all',
-                selectOnLineNumbers: true,
+                selectOnLineNumbers: false,
                 glyphMargin: true,
                 useTabStops: false,
                 insertSpaces: true,
@@ -693,15 +688,6 @@ const BotEditor = () => {
                 detectIndentation: true,
                 trimAutoWhitespace: true,
                 largeFileOptimizations: true,
-                suggestOnTriggerCharacters: true,
-                acceptSuggestionOnCommitCharacter: true,
-                acceptSuggestionOnEnter: 'on',
-                quickSuggestions: {
-                  other: true,
-                  comments: true,
-                  strings: true
-                },
-                quickSuggestionsDelay: 10,
                 parameterHints: {
                   enabled: true,
                   cycle: true,
@@ -713,32 +699,22 @@ const BotEditor = () => {
                 multiCursorModifier: 'alt',
                 accessibilitySupport: 'on',
                 copyWithSyntaxHighlighting: true,
-                // Auto-completion settings
-                suggest: {
-                  insertMode: 'replace',
-                  showKeywords: true,
-                  showSnippets: true,
-                  showClasses: true,
-                  showFunctions: true,
-                  showVariables: true,
-                  showModules: true,
-                  showProperties: true,
-                  showEvents: true,
-                  showOperators: true,
-                  showUnits: true,
-                  showValues: true,
-                  showConstants: true,
-                  showEnums: true,
-                  showEnumMembers: true,
-                  showColors: true,
-                  showFiles: true,
-                  showReferences: true,
-                  showFolders: true,
-                  showTypeParameters: true,
-                  showWords: true,
-                  showUsers: true,
-                  showIssues: true,
-                }
+                // Mobile-friendly text selection
+                wordBasedSuggestions: 'off',
+                wordWrap: 'off',
+                wordWrapColumn: 80,
+                wrappingIndent: 'none',
+                // Better text selection for mobile
+                selectionClipboard: false,
+                contextmenu: true,
+                // Mobile text selection improvements
+                mouseWheelZoom: false,
+                disableLayerHinting: true,
+                // Disable features that interfere with text selection
+                quickSuggestions: false,
+                suggestOnTriggerCharacters: false,
+                acceptSuggestionOnCommitCharacter: false,
+                acceptSuggestionOnEnter: 'off'
               }}
             />
           </div>
