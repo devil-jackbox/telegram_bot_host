@@ -1,8 +1,8 @@
 # Use Node.js 18 as base image
 FROM node:18-alpine
 
-# Install build dependencies
-RUN apk add --no-cache python3 py3-pip py3-setuptools py3-wheel tzdata make g++ git
+# Install only minimal runtime deps for Node app
+RUN apk add --no-cache tzdata git
 
 # Set working directory
 WORKDIR /app
