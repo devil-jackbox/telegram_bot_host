@@ -40,8 +40,7 @@ const BotEditor = () => {
   const [editorInstance, setEditorInstance] = useState(null);
   const [environmentVariables, setEnvironmentVariables] = useState([
     { key: 'BOT_TOKEN', value: '', isSecret: true },
-    { key: 'BOT_MODE', value: 'polling', isSecret: false },
-    { key: 'PROTECT_CONTENT', value: 'false', isSecret: false }
+    { key: 'BOT_MODE', value: 'polling', isSecret: false }
   ]);
   const [autoDetectEnabled, setAutoDetectEnabled] = useState(true);
 
@@ -53,7 +52,6 @@ const BotEditor = () => {
     'BOT_TOKEN',
     'NODE_ENV',
     'BOT_MODE',
-    'PROTECT_CONTENT',
     'WEBHOOK_URL',
     'PORT',
     'DATABASE_URL',
