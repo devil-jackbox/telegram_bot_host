@@ -40,7 +40,6 @@ const BotEditor = () => {
   const [editorInstance, setEditorInstance] = useState(null);
   const [environmentVariables, setEnvironmentVariables] = useState([
     { key: 'BOT_TOKEN', value: '', isSecret: true },
-    { key: 'NODE_ENV', value: 'production', isSecret: false },
     { key: 'BOT_MODE', value: 'polling', isSecret: false },
     { key: 'PROTECT_CONTENT', value: 'false', isSecret: false }
   ]);

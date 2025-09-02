@@ -91,12 +91,8 @@ class BotManager {
         autoStart: botData.autoStart || false,
         environmentVariables: botData.environmentVariables || [
           { key: 'BOT_TOKEN', value: botData.token, isSecret: true },
-          { key: 'NODE_ENV', value: 'production', isSecret: false },
           { key: 'BOT_MODE', value: 'polling', isSecret: false },
-          { key: 'PROTECT_CONTENT', value: 'false', isSecret: false },
-          { key: 'PORT', value: '3000', isSecret: false },
-          { key: 'LOG_LEVEL', value: 'info', isSecret: false },
-          { key: 'DEBUG', value: 'false', isSecret: false }
+          { key: 'PROTECT_CONTENT', value: 'false', isSecret: false }
         ],
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
@@ -206,7 +202,15 @@ if (botMode === 'webhook') {
   console.log('🌐 Webhook mode enabled:', webhookUrl);
 } else {
   // Polling mode (default)
+  const protectContent = String(process.env.PROTECT_CONTENT || 'false').toLowerCase() === 'true';
   bot = new TelegramBot(token, { polling: true });
+  if (protectContent) {
+    const originalSendMessage = bot.sendMessage.bind(bot);
+    bot.sendMessage = (chatId, text, options = {}) => {
+      options = { ...options, protect_content: true };
+      return originalSendMessage(chatId, text, options);
+    };
+  }
   console.log('📡 Polling mode enabled');
 }
 
@@ -578,6 +582,10 @@ try {
         env.BOT_TOKEN = bot.token;
         env.NODE_ENV = 'production';
       }
+      // Backend-only defaults (not shown by default in UI)
+      if (!env.PORT) env.PORT = '3000';
+      if (!env.LOG_LEVEL) env.LOG_LEVEL = 'info';
+      if (!env.DEBUG) env.DEBUG = 'false';
       
       logger.info(`Environment variables set for bot ${botId}: ${Object.keys(env).join(', ')}`);
 
