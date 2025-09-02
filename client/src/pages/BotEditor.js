@@ -39,11 +39,14 @@ const BotEditor = () => {
   const [errors, setErrors] = useState([]);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [editorInstance, setEditorInstance] = useState(null);
+  const [showContextMenu, setShowContextMenu] = useState(false);
+  const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 });
   const [environmentVariables, setEnvironmentVariables] = useState([
     { key: 'BOT_TOKEN', value: '', isSecret: true },
     { key: 'NODE_ENV', value: 'production', isSecret: false },
     { key: 'BOT_MODE', value: 'polling', isSecret: false }
   ]);
+  const [autoDetectEnabled, setAutoDetectEnabled] = useState(true);
 
   // Common environment variable suggestions
   const commonEnvVars = [
@@ -145,6 +148,81 @@ const BotEditor = () => {
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [activeTab]);
+
+  // Close context menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setShowContextMenu(false);
+    };
+
+    if (showContextMenu) {
+      document.addEventListener('click', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [showContextMenu]);
+
+  // Auto-detect environment variables when code changes (debounced)
+  useEffect(() => {
+    if (!autoDetectEnabled || !code || code === originalCode) return;
+
+    const timer = setTimeout(() => {
+      // Only auto-detect if we have significant code changes
+      if (code.length > 50) {
+        const patterns = [
+          /process\.env\.([A-Z_][A-Z0-9_]*)/g,
+          /process\.env\[['"`]([A-Z_][A-Z0-9_]*)['"`]\]/g,
+          /process\.env\[`([A-Z_][A-Z0-9_]*)`\]/g,
+          /process\.env\[([A-Z_][A-Z0-9_]*)\]/g,
+        ];
+
+        const detectedVars = new Set();
+        patterns.forEach(pattern => {
+          let match;
+          while ((match = pattern.exec(code)) !== null) {
+            const varName = match[1];
+            if (varName && varName.length > 0) {
+              detectedVars.add(varName);
+            }
+          }
+        });
+
+        const commonBuiltins = ['NODE_ENV', 'PATH', 'HOME', 'USER', 'PWD', 'SHELL', 'LANG', 'TZ'];
+        const newVars = Array.from(detectedVars)
+          .filter(varName => !commonBuiltins.includes(varName) && varName.length > 1)
+          .filter(varName => !environmentVariables.some(existing => existing.key === varName));
+
+        if (newVars.length > 0) {
+          const envVarsToAdd = newVars.map(varName => {
+            const secretKeywords = ['token', 'secret', 'key', 'password', 'pass', 'auth', 'private'];
+            const isSecret = secretKeywords.some(keyword => varName.toLowerCase().includes(keyword));
+            
+            let defaultValue = '';
+            if (varName === 'BOT_TOKEN' || varName === 'TOKEN') {
+              defaultValue = bot?.token || '';
+            } else if (varName === 'NODE_ENV') {
+              defaultValue = 'production';
+            } else if (varName === 'PORT') {
+              defaultValue = '3000';
+            } else if (varName === 'BOT_MODE') {
+              defaultValue = 'polling';
+            }
+
+            return { key: varName, value: defaultValue, isSecret };
+          });
+
+          setEnvironmentVariables(prev => [...prev, ...envVarsToAdd]);
+          toast.success(`Auto-detected ${envVarsToAdd.length} new environment variables`);
+        }
+      }
+    }, 2000); // Wait 2 seconds after code changes
+
+    return () => clearTimeout(timer);
+  }, [code, autoDetectEnabled, environmentVariables, originalCode, bot?.token]);
 
   const loadBotData = async () => {
     setLoading(true);
@@ -336,6 +414,91 @@ const BotEditor = () => {
     toast.success('Default environment variables added!');
   };
 
+  const detectEnvironmentVariablesFromCode = () => {
+    if (!code) {
+      toast.error('No code to analyze');
+      return;
+    }
+
+    // Common patterns for environment variables in JavaScript/Node.js
+    const patterns = [
+      /process\.env\.([A-Z_][A-Z0-9_]*)/g,           // process.env.VARIABLE_NAME
+      /process\.env\[['"`]([A-Z_][A-Z0-9_]*)['"`]\]/g, // process.env['VARIABLE_NAME']
+      /process\.env\[`([A-Z_][A-Z0-9_]*)`\]/g,        // process.env[`VARIABLE_NAME`]
+      /process\.env\[([A-Z_][A-Z0-9_]*)\]/g,          // process.env[VARIABLE_NAME]
+      /process\.env\.([a-z][a-z0-9_]*)/g,              // process.env.variable_name (lowercase)
+      /process\.env\[['"`]([a-z][a-z0-9_]*)['"`]\]/g, // process.env['variable_name']
+      /process\.env\[`([a-z][a-z0-9_]*)`\]/g,         // process.env[`variable_name`]
+      /process\.env\[([a-z][a-z0-9_]*)\]/g,            // process.env[variable_name]
+      /process\.env\.([A-Za-z][A-Za-z0-9_]*)/g,       // process.env.MixedCase
+      /process\.env\[['"`]([A-Za-z][A-Za-z0-9_]*)['"`]\]/g, // process.env['MixedCase']
+      /process\.env\[`([A-Za-z][A-Za-z0-9_]*)`\]/g,   // process.env[`MixedCase`]
+      /process\.env\[([A-Za-z][A-Za-z0-9_]*)\]/g,     // process.env[MixedCase]
+    ];
+
+    const detectedVars = new Set();
+    
+    patterns.forEach(pattern => {
+      let match;
+      while ((match = pattern.exec(code)) !== null) {
+        const varName = match[1];
+        if (varName && varName.length > 0) {
+          detectedVars.add(varName);
+        }
+      }
+    });
+
+    // Convert to array and filter out common Node.js built-ins
+    const commonBuiltins = ['NODE_ENV', 'PATH', 'HOME', 'USER', 'PWD', 'SHELL', 'LANG', 'TZ'];
+    const filteredVars = Array.from(detectedVars).filter(varName => 
+      !commonBuiltins.includes(varName) && varName.length > 1
+    );
+
+    if (filteredVars.length === 0) {
+      toast.error('No environment variables detected in code');
+      return;
+    }
+
+    // Create environment variable objects
+    const newVars = filteredVars.map(varName => {
+      // Determine if it's likely a secret based on the name
+      const secretKeywords = ['token', 'secret', 'key', 'password', 'pass', 'auth', 'private'];
+      const isSecret = secretKeywords.some(keyword => 
+        varName.toLowerCase().includes(keyword)
+      );
+      
+      // Set default values for common variables
+      let defaultValue = '';
+      if (varName === 'BOT_TOKEN' || varName === 'TOKEN') {
+        defaultValue = bot?.token || '';
+      } else if (varName === 'NODE_ENV') {
+        defaultValue = 'production';
+      } else if (varName === 'PORT') {
+        defaultValue = '3000';
+      } else if (varName === 'BOT_MODE') {
+        defaultValue = 'polling';
+      }
+
+      return {
+        key: varName,
+        value: defaultValue,
+        isSecret: isSecret
+      };
+    });
+
+    // Merge with existing variables, avoiding duplicates
+    const existingKeys = environmentVariables.map(v => v.key);
+    const uniqueNewVars = newVars.filter(v => !existingKeys.includes(v.key));
+    
+    if (uniqueNewVars.length === 0) {
+      toast.info('All detected environment variables already exist');
+      return;
+    }
+
+    setEnvironmentVariables([...environmentVariables, ...uniqueNewVars]);
+    toast.success(`Detected and added ${uniqueNewVars.length} environment variables from code!`);
+  };
+
   // Error Functions
   const clearErrors = () => {
     setErrors([]);
@@ -520,6 +683,181 @@ const BotEditor = () => {
                 {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
               </button>
             </div>
+
+            {/* Mobile-friendly action buttons */}
+            <div className="absolute top-2 left-2 z-10 flex space-x-2">
+              <button
+                onClick={() => {
+                  if (editorInstance) {
+                    editorInstance.trigger('keyboard', 'editor.action.selectAll', {});
+                    toast.success('All text selected');
+                  }
+                }}
+                className="p-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-xs font-medium"
+                title="Select All"
+              >
+                Select All
+              </button>
+              <button
+                onClick={() => {
+                  if (editorInstance) {
+                    const selection = editorInstance.getSelection();
+                    if (selection.isEmpty()) {
+                      toast.error('No text selected');
+                      return;
+                    }
+                    editorInstance.trigger('keyboard', 'editor.action.clipboardCopyAction', {});
+                    toast.success('Text copied to clipboard');
+                  }
+                }}
+                className="p-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-xs font-medium"
+                title="Copy Selected"
+              >
+                Copy
+              </button>
+              <button
+                onClick={() => {
+                  if (editorInstance) {
+                    const selection = editorInstance.getSelection();
+                    if (selection.isEmpty()) {
+                      toast.error('No text selected');
+                      return;
+                    }
+                    editorInstance.trigger('keyboard', 'editor.action.clipboardCutAction', {});
+                    toast.success('Text cut to clipboard');
+                  }
+                }}
+                className="p-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 transition-colors text-xs font-medium"
+                title="Cut Selected"
+              >
+                Cut
+              </button>
+              <button
+                onClick={() => {
+                  if (editorInstance) {
+                    navigator.clipboard.readText().then(text => {
+                      editorInstance.trigger('keyboard', 'editor.action.clipboardPasteAction', {});
+                      toast.success('Text pasted from clipboard');
+                    }).catch(() => {
+                      toast.error('Failed to read clipboard');
+                    });
+                  }
+                }}
+                className="p-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors text-xs font-medium"
+                title="Paste from Clipboard"
+              >
+                Paste
+              </button>
+            </div>
+
+            {/* Mobile Context Menu */}
+            {showContextMenu && (
+              <div 
+                className="fixed z-50 bg-white border border-gray-300 rounded-lg shadow-lg p-2 min-w-32"
+                style={{
+                  left: contextMenuPosition.x,
+                  top: contextMenuPosition.y,
+                  transform: 'translate(-50%, -100%)'
+                }}
+              >
+                <div className="space-y-1">
+                  <button
+                    onClick={() => {
+                      if (editorInstance) {
+                        editorInstance.trigger('keyboard', 'editor.action.selectAll', {});
+                        toast.success('All text selected');
+                      }
+                      setShowContextMenu(false);
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded flex items-center"
+                  >
+                    <Copy size={14} className="mr-2" />
+                    Select All
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (editorInstance) {
+                        const selection = editorInstance.getSelection();
+                        if (selection.isEmpty()) {
+                          toast.error('No text selected');
+                          return;
+                        }
+                        editorInstance.trigger('keyboard', 'editor.action.clipboardCopyAction', {});
+                        toast.success('Text copied');
+                      }
+                      setShowContextMenu(false);
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded flex items-center"
+                  >
+                    <Copy size={14} className="mr-2" />
+                    Copy
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (editorInstance) {
+                        const selection = editorInstance.getSelection();
+                        if (selection.isEmpty()) {
+                          toast.error('No text selected');
+                          return;
+                        }
+                        editorInstance.trigger('keyboard', 'editor.action.clipboardCutAction', {});
+                        toast.success('Text cut');
+                      }
+                      setShowContextMenu(false);
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded flex items-center"
+                  >
+                    <Copy size={14} className="mr-2" />
+                    Cut
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (editorInstance) {
+                        navigator.clipboard.readText().then(() => {
+                          editorInstance.trigger('keyboard', 'editor.action.clipboardPasteAction', {});
+                          toast.success('Text pasted');
+                        }).catch(() => {
+                          toast.error('Failed to read clipboard');
+                        });
+                      }
+                      setShowContextMenu(false);
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded flex items-center"
+                  >
+                    <Copy size={14} className="mr-2" />
+                    Paste
+                  </button>
+                  <hr className="border-gray-200" />
+                  <button
+                    onClick={() => {
+                      if (editorInstance) {
+                        editorInstance.trigger('keyboard', 'undo', {});
+                        toast.success('Undo');
+                      }
+                      setShowContextMenu(false);
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded flex items-center"
+                  >
+                    <RotateCcw size={14} className="mr-2" />
+                    Undo
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (editorInstance) {
+                        editorInstance.trigger('keyboard', 'redo', {});
+                        toast.success('Redo');
+                      }
+                      setShowContextMenu(false);
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded flex items-center"
+                  >
+                    <RotateCcw size={14} className="mr-2" />
+                    Redo
+                  </button>
+                </div>
+              </div>
+            )}
+
             <Editor
               height="100%"
               language={getLanguage()}
@@ -559,6 +897,50 @@ const BotEditor = () => {
                   const lineCount = editor.getModel().getLineCount();
                   editor.revealLine(lineCount);
                 });
+                
+                // Add mobile context menu support
+                let longPressTimer = null;
+                let isLongPress = false;
+                
+                // Handle touch events for mobile context menu
+                const handleTouchStart = (e) => {
+                  longPressTimer = setTimeout(() => {
+                    isLongPress = true;
+                    const touch = e.touches[0];
+                    const rect = editor.getDomNode().getBoundingClientRect();
+                    setContextMenuPosition({
+                      x: touch.clientX - rect.left,
+                      y: touch.clientY - rect.top
+                    });
+                    setShowContextMenu(true);
+                  }, 500); // 500ms for long press
+                };
+                
+                const handleTouchEnd = () => {
+                  if (longPressTimer) {
+                    clearTimeout(longPressTimer);
+                    longPressTimer = null;
+                  }
+                  // Don't hide context menu immediately to allow user to interact
+                  setTimeout(() => {
+                    if (!isLongPress) {
+                      setShowContextMenu(false);
+                    }
+                  }, 100);
+                };
+                
+                const handleTouchMove = () => {
+                  if (longPressTimer) {
+                    clearTimeout(longPressTimer);
+                    longPressTimer = null;
+                  }
+                };
+                
+                // Add touch event listeners
+                const editorDom = editor.getDomNode();
+                editorDom.addEventListener('touchstart', handleTouchStart, { passive: false });
+                editorDom.addEventListener('touchend', handleTouchEnd, { passive: false });
+                editorDom.addEventListener('touchmove', handleTouchMove, { passive: false });
                 
                 // Scroll to bottom when code is loaded
                 setTimeout(() => {
@@ -657,6 +1039,18 @@ const BotEditor = () => {
             <div>
               <h3 className="text-lg font-medium text-gray-900">Environment Variables</h3>
               <p className="text-sm text-gray-600">Configure environment variables for your bot</p>
+              <div className="flex items-center mt-2">
+                <input
+                  type="checkbox"
+                  id="autoDetect"
+                  checked={autoDetectEnabled}
+                  onChange={(e) => setAutoDetectEnabled(e.target.checked)}
+                  className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                />
+                <label htmlFor="autoDetect" className="ml-2 block text-sm text-gray-700">
+                  Auto-detect variables from code changes
+                </label>
+              </div>
             </div>
             <div className="flex items-center space-x-2">
               <button
@@ -665,6 +1059,13 @@ const BotEditor = () => {
               >
                 {showSecrets ? <EyeOff size={16} /> : <Eye size={16} />}
                 {showSecrets ? 'Hide' : 'Show'} Secrets
+              </button>
+              <button
+                onClick={detectEnvironmentVariablesFromCode}
+                className="btn-secondary"
+              >
+                <FileText size={16} />
+                Detect from Code
               </button>
               <button
                 onClick={autoFillEnvironmentVariables}
@@ -711,52 +1112,71 @@ const BotEditor = () => {
           </div>
 
           <div className="space-y-4">
-            {environmentVariables.map((envVar, index) => (
-              <div key={index} className="flex items-center space-x-3 p-4 border border-gray-200 rounded-lg">
-                <div className="flex-1">
-                  <div className="relative">
-                    <input
-                      type="text"
-                      placeholder="Variable name (e.g., API_KEY)"
-                      value={envVar.key}
-                      onChange={(e) => updateEnvironmentVariable(index, 'key', e.target.value)}
-                      className="input mb-2"
-                      list={`env-var-${index}`}
-                    />
-                    <datalist id={`env-var-${index}`}>
-                      {commonEnvVars.map((suggestion, idx) => (
-                        <option key={idx} value={suggestion} />
-                      ))}
-                    </datalist>
+            {environmentVariables.map((envVar, index) => {
+              // Check if this variable is used in the current code
+              const isUsedInCode = code && (
+                code.includes(`process.env.${envVar.key}`) ||
+                code.includes(`process.env['${envVar.key}']`) ||
+                code.includes(`process.env["${envVar.key}"]`) ||
+                code.includes(`process.env[\`${envVar.key}\`]`)
+              );
+
+              return (
+                <div key={index} className={`flex items-center space-x-3 p-4 border rounded-lg ${
+                  isUsedInCode ? 'border-green-200 bg-green-50' : 'border-gray-200'
+                }`}>
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <div className="relative flex-1">
+                        <input
+                          type="text"
+                          placeholder="Variable name (e.g., API_KEY)"
+                          value={envVar.key}
+                          onChange={(e) => updateEnvironmentVariable(index, 'key', e.target.value)}
+                          className="input"
+                          list={`env-var-${index}`}
+                        />
+                        <datalist id={`env-var-${index}`}>
+                          {commonEnvVars.map((suggestion, idx) => (
+                            <option key={idx} value={suggestion} />
+                          ))}
+                        </datalist>
+                      </div>
+                      {isUsedInCode && (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          Used in code
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type={showSecrets || !envVar.isSecret ? "text" : "password"}
+                        placeholder="Variable value"
+                        value={envVar.value}
+                        onChange={(e) => updateEnvironmentVariable(index, 'value', e.target.value)}
+                        className="input flex-1"
+                      />
+                      <button
+                        onClick={() => updateEnvironmentVariable(index, 'isSecret', !envVar.isSecret)}
+                        className={`px-3 py-2 text-sm rounded-md ${
+                          envVar.isSecret 
+                            ? 'bg-red-100 text-red-700 hover:bg-red-200' 
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        {envVar.isSecret ? 'Secret' : 'Public'}
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type={showSecrets || !envVar.isSecret ? "text" : "password"}
-                      placeholder="Variable value"
-                      value={envVar.value}
-                      onChange={(e) => updateEnvironmentVariable(index, 'value', e.target.value)}
-                      className="input flex-1"
-                    />
-                    <button
-                      onClick={() => updateEnvironmentVariable(index, 'isSecret', !envVar.isSecret)}
-                      className={`px-3 py-2 text-sm rounded-md ${
-                        envVar.isSecret 
-                          ? 'bg-red-100 text-red-700 hover:bg-red-200' 
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                    >
-                      {envVar.isSecret ? 'Secret' : 'Public'}
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => removeEnvironmentVariable(index)}
+                    className="text-red-600 hover:text-red-800 p-2"
+                  >
+                    <Trash2 size={16} />
+                  </button>
                 </div>
-                <button
-                  onClick={() => removeEnvironmentVariable(index)}
-                  className="text-red-600 hover:text-red-800 p-2"
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <div className="mt-6 flex justify-end">
