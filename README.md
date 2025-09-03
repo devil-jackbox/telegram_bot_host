@@ -171,3 +171,6 @@ MIT License. See `LICENSE` if present.
 - node-telegram-bot-api
 
 — Built for Telegram bot developers who want speed, control, and simplicity.
+
+
+![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/devil-jackbox/telegram-bots?utm_source=oss&utm_medium=github&utm_campaign=devil-jackbox%2Ftelegram-bots&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
