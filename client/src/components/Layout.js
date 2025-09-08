@@ -101,14 +101,7 @@ const Layout = ({ children }) => {
                 </span>
               </div>
 
-              {/* Create bot button */}
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="btn-primary"
-              >
-                <Plus size={16} />
-                <span className="hidden sm:inline">Create Bot</span>
-              </button>
+              
             </div>
           </div>
         </div>
