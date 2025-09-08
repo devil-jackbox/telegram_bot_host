@@ -23,25 +23,21 @@ const io = socketIo(server, {
   allowEIO3: true
 });
 
-// Security middleware
 app.use(helmet({
-  contentSecurityPolicy: false, // Disable CSP for development
+  contentSecurityPolicy: false,
 }));
 app.use(compression());
 app.use(cors());
 
-// Rate limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
+  windowMs: 15 * 60 * 1000,
+  max: 100
 });
 app.use(limiter);
 
-// Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Health check endpoint (must be first)
 app.get('/health', (req, res) => {
   res.json({ 
     status: 'ok', 
@@ -51,7 +47,6 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Debug endpoint to check build files
 app.get('/debug', (req, res) => {
   const buildPaths = [
     path.join(__dirname, 'client/build'),
@@ -73,7 +68,6 @@ app.get('/debug', (req, res) => {
   res.json(debugInfo);
 });
 
-// Simple root endpoint for testing (only in development)
 if (process.env.NODE_ENV !== 'production') {
   app.get('/', (req, res) => {
     res.json({ 
@@ -87,7 +81,6 @@ if (process.env.NODE_ENV !== 'production') {
   });
 }
 
-// Initialize bot manager with error handling
 let botManager;
 try {
   const BotManager = require('./src/botManager');
@@ -95,11 +88,9 @@ try {
   logger.info('BotManager initialized successfully');
 } catch (error) {
   logger.error('Failed to initialize BotManager:', error);
-  // Continue without bot manager for now
   botManager = null;
 }
 
-// API Routes with error handling
 try {
   app.use('/api/bots', require('./src/routes/bots'));
   app.use('/api/files', require('./src/routes/files'));
@@ -107,15 +98,12 @@ try {
   logger.info('API routes loaded successfully');
 } catch (error) {
   logger.error('Failed to load API routes:', error);
-  // Add fallback routes
   app.use('/api/bots', (req, res) => res.status(503).json({ error: 'API temporarily unavailable' }));
   app.use('/api/files', (req, res) => res.status(503).json({ error: 'API temporarily unavailable' }));
   app.use('/api/logs', (req, res) => res.status(503).json({ error: 'API temporarily unavailable' }));
 }
 
-// Static files (only in production)
 if (process.env.NODE_ENV === 'production') {
-  // Try multiple possible build locations
   const buildPaths = [
     path.join(__dirname, 'client/build'),
     path.join(__dirname, 'react-build'),
@@ -137,7 +125,6 @@ if (process.env.NODE_ENV === 'production') {
   if (buildPath && indexPath) {
     app.use(express.static(buildPath));
     
-    // Serve React app for all other routes
     app.get('*', (req, res) => {
       res.sendFile(indexPath);
     });
@@ -147,14 +134,12 @@ if (process.env.NODE_ENV === 'production') {
     logger.error('React build files not found in any location');
     logger.error('Checked paths:', buildPaths);
     
-    // Fallback: serve a simple HTML page
     app.get('*', (req, res) => {
       res.sendFile(path.join(__dirname, 'public', 'index.html'));
     });
   }
 }
 
-// Socket.IO connection handling
 io.on('connection', (socket) => {
   logger.info(`Client connected: ${socket.id} from ${socket.handshake.address}`);
 
@@ -177,13 +162,11 @@ io.on('connection', (socket) => {
   });
 });
 
-// Error handling middleware
 app.use((err, req, res, next) => {
   logger.error(err.stack);
   res.status(500).json({ error: 'Something went wrong!' });
 });
 
-// Graceful shutdown handlers
 process.on('SIGINT', async () => {
   logger.info('Received SIGINT, shutting down gracefully...');
   
@@ -212,7 +195,6 @@ process.on('SIGTERM', async () => {
   process.exit(0);
 });
 
-// Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
   logger.error('Uncaught Exception:', error);
   process.exit(1);
@@ -223,7 +205,6 @@ process.on('unhandledRejection', (reason, promise) => {
   process.exit(1);
 });
 
-// Start server
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
 
@@ -232,7 +213,6 @@ server.listen(PORT, HOST, () => {
   logger.info(`📱 Platform is ready to host Telegram bots!`);
 });
 
-// Handle server errors
 server.on('error', (error) => {
   logger.error('Server error:', error);
   process.exit(1);

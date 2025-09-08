@@ -3,7 +3,6 @@ const router = express.Router();
 const BotManager = require('../botManager');
 const logger = require('../utils/logger');
 
-// Get bot manager instance
 let botManager;
 try {
   botManager = BotManager.getInstance();
@@ -12,20 +11,21 @@ try {
   botManager = null;
 }
 
-// Get all logs for a bot
 router.get('/:botId', (req, res) => {
   try {
+    if (!botManager) {
+      return res.status(500).json({ success: false, error: 'Bot manager not available' });
+    }
+    
     const { botId } = req.params;
     const { level, limit = 100 } = req.query;
     
     let logs = botManager.getBotLogs(botId);
     
-    // Filter by level if specified
     if (level) {
       logs = logs.filter(log => log.level === level);
     }
     
-    // Limit results
     logs = logs.slice(-parseInt(limit));
     
     res.json({ success: true, logs });
@@ -34,15 +34,17 @@ router.get('/:botId', (req, res) => {
   }
 });
 
-// Get all errors for a bot
 router.get('/:botId/errors', (req, res) => {
   try {
+    if (!botManager) {
+      return res.status(500).json({ success: false, error: 'Bot manager not available' });
+    }
+    
     const { botId } = req.params;
     const { limit = 50 } = req.query;
     
     let errors = botManager.getBotErrors(botId);
     
-    // Limit results
     errors = errors.slice(-parseInt(limit));
     
     res.json({ success: true, errors });
@@ -51,9 +53,12 @@ router.get('/:botId/errors', (req, res) => {
   }
 });
 
-// Clear logs for a bot
 router.delete('/:botId', (req, res) => {
   try {
+    if (!botManager) {
+      return res.status(500).json({ success: false, error: 'Bot manager not available' });
+    }
+    
     const { botId } = req.params;
     const { type = 'all' } = req.query;
     
@@ -71,7 +76,6 @@ router.delete('/:botId', (req, res) => {
   }
 });
 
-// Get system logs
 router.get('/system/combined', (req, res) => {
   try {
     const fs = require('fs-extra');
@@ -92,7 +96,7 @@ router.get('/system/combined', (req, res) => {
           return { message: line, timestamp: new Date().toISOString() };
         }
       })
-      .slice(-100); // Last 100 lines
+      .slice(-100);
     
     res.json({ success: true, logs });
   } catch (error) {
@@ -100,7 +104,6 @@ router.get('/system/combined', (req, res) => {
   }
 });
 
-// Get system errors
 router.get('/system/errors', (req, res) => {
   try {
     const fs = require('fs-extra');
@@ -121,7 +124,7 @@ router.get('/system/errors', (req, res) => {
           return { message: line, timestamp: new Date().toISOString() };
         }
       })
-      .slice(-50); // Last 50 lines
+      .slice(-50);
     
     res.json({ success: true, errors });
   } catch (error) {

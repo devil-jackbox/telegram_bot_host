@@ -5,7 +5,6 @@ const path = require('path');
 const BotManager = require('../botManager');
 const logger = require('../utils/logger');
 
-// Get bot manager instance
 let botManager;
 try {
   botManager = BotManager.getInstance();
@@ -14,7 +13,6 @@ try {
   botManager = null;
 }
 
-// Get bot file content
 router.get('/:botId', async (req, res) => {
   try {
     const { botId } = req.params;
@@ -29,14 +27,9 @@ router.get('/:botId', async (req, res) => {
       return res.status(404).json({ success: false, error: 'Bot not found' });
     }
     
-    const botDir = path.join(__dirname, '../../bots', botId);
-    const fileExtension = 'js';
-    const fileName = `bot.${fileExtension}`;
+    const botDir = path.join(botManager.botsDir, botId);
+    const fileName = 'bot.js';
     const filePath = path.join(botDir, fileName);
-    
-    console.log('🔍 Debug file path:', filePath);
-    console.log('🔍 Bot directory exists:', await fs.pathExists(botDir));
-    console.log('🔍 File exists:', await fs.pathExists(filePath));
     
     if (!await fs.pathExists(filePath)) {
       return res.status(404).json({ success: false, error: 'Bot file not found' });
@@ -45,14 +38,17 @@ router.get('/:botId', async (req, res) => {
     const content = await fs.readFile(filePath, 'utf8');
     res.json({ success: true, content, fileName });
   } catch (error) {
-    console.error('❌ File read error:', error);
+    logger.error('File read error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// Update bot file content
 router.put('/:botId', async (req, res) => {
   try {
+    if (!botManager) {
+      return res.status(500).json({ success: false, error: 'Bot manager not available' });
+    }
+    
     const { botId } = req.params;
     const { content } = req.body;
     
@@ -77,9 +73,12 @@ router.put('/:botId', async (req, res) => {
   }
 });
 
-// Get bot directory structure
 router.get('/:botId/structure', async (req, res) => {
   try {
+    if (!botManager) {
+      return res.status(500).json({ success: false, error: 'Bot manager not available' });
+    }
+    
     const { botId } = req.params;
     const bot = botManager.getBot(botId);
     
@@ -87,7 +86,7 @@ router.get('/:botId/structure', async (req, res) => {
       return res.status(404).json({ success: false, error: 'Bot not found' });
     }
     
-    const botDir = path.join(__dirname, '../../bots', botId);
+    const botDir = path.join(botManager.botsDir, botId);
     
     if (!await fs.pathExists(botDir)) {
       return res.status(404).json({ success: false, error: 'Bot directory not found' });

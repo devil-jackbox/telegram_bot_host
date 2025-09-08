@@ -17,7 +17,8 @@ import {
   Trash2,
   RefreshCw,
   Eye,
-  EyeOff
+  EyeOff,
+  Copy
 } from 'lucide-react';
 import { useBots } from '../contexts/BotContext';
 import { useSocket } from '../contexts/SocketContext';
@@ -45,10 +46,8 @@ const BotEditor = () => {
   ]);
   const [autoDetectEnabled, setAutoDetectEnabled] = useState(true);
 
-  // Detect Android to enable native long-press selection by using a textarea fallback
   const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent || '');
 
-  // Common environment variable suggestions
   const commonEnvVars = [
     'BOT_TOKEN',
     'NODE_ENV',
@@ -98,14 +97,12 @@ const BotEditor = () => {
     };
   }, [botId, bots]);
 
-  // Listen for bot status updates
   useEffect(() => {
     if (!botId) return;
 
     const handleBotStatus = (data) => {
       if (data.botId === botId) {
         console.log('Bot status update:', data);
-        // Update the bot status in the local state
         setBot(prevBot => prevBot ? { ...prevBot, status: data.status } : prevBot);
       }
     };
@@ -122,7 +119,6 @@ const BotEditor = () => {
       }
     };
 
-    // Add event listeners
     const socket = window.socket || null;
     if (socket) {
       socket.on('bot-status', handleBotStatus);
@@ -137,7 +133,6 @@ const BotEditor = () => {
     }
   }, [botId]);
 
-  // Keyboard shortcut for fullscreen
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'F11' && activeTab === 'editor') {
@@ -152,12 +147,10 @@ const BotEditor = () => {
 
 
 
-  // Auto-detect environment variables when code changes (debounced)
   useEffect(() => {
     if (!autoDetectEnabled || !code || code === originalCode) return;
 
     const timer = setTimeout(() => {
-      // Only auto-detect if we have significant code changes
       if (code.length > 50) {
         const patterns = [
           /process\.env\.([A-Z_][A-Z0-9_]*)/g,
@@ -205,7 +198,7 @@ const BotEditor = () => {
           toast.success(`Auto-detected ${envVarsToAdd.length} new environment variables`);
         }
       }
-    }, 2000); // Wait 2 seconds after code changes
+    }, 2000);
 
     return () => clearTimeout(timer);
   }, [code, autoDetectEnabled, environmentVariables, originalCode, bot?.token]);
@@ -230,16 +223,13 @@ const BotEditor = () => {
         
 
         
-        // Load environment variables if they exist
         if (currentBot.environmentVariables && Array.isArray(currentBot.environmentVariables)) {
-          // Hide PROTECT_CONTENT unless it is referenced in code
           const referencesProtect = /process\.env\.PROTECT_CONTENT|process\.env\[['"`]PROTECT_CONTENT['"`]\]/.test(botCode);
           const filtered = referencesProtect
             ? currentBot.environmentVariables
             : currentBot.environmentVariables.filter(v => v.key !== 'PROTECT_CONTENT');
           setEnvironmentVariables(filtered);
         } else {
-          // Set default environment variables
           setEnvironmentVariables([
             { key: 'BOT_TOKEN', value: currentBot.token || '', isSecret: true },
             { key: 'NODE_ENV', value: 'production', isSecret: false },
@@ -273,7 +263,6 @@ const BotEditor = () => {
 
   const handleStart = async () => {
     try {
-      // Update bot with environment variables before starting
       await updateBot(botId, { environmentVariables });
       
       setBot(prevBot => ({ ...prevBot, status: 'starting' }));
@@ -339,7 +328,6 @@ const BotEditor = () => {
     );
   };
 
-  // Environment Variables Functions
   const addEnvironmentVariable = () => {
     try {
       setEnvironmentVariables([...environmentVariables, { key: '', value: '', isSecret: false }]);
@@ -391,7 +379,6 @@ const BotEditor = () => {
       { key: 'WEBHOOK_SECRET', value: '', isSecret: true }
     ];
     
-    // Merge with existing variables, avoiding duplicates
     const existingKeys = environmentVariables.map(v => v.key);
     const newVars = defaultVars.filter(v => !existingKeys.includes(v.key));
     
@@ -405,20 +392,19 @@ const BotEditor = () => {
       return;
     }
 
-    // Common patterns for environment variables in JavaScript/Node.js
     const patterns = [
-      /process\.env\.([A-Z_][A-Z0-9_]*)/g,           // process.env.VARIABLE_NAME
-      /process\.env\[['"`]([A-Z_][A-Z0-9_]*)['"`]\]/g, // process.env['VARIABLE_NAME']
-      /process\.env\[`([A-Z_][A-Z0-9_]*)`\]/g,        // process.env[`VARIABLE_NAME`]
-      /process\.env\[([A-Z_][A-Z0-9_]*)\]/g,          // process.env[VARIABLE_NAME]
-      /process\.env\.([a-z][a-z0-9_]*)/g,              // process.env.variable_name (lowercase)
-      /process\.env\[['"`]([a-z][a-z0-9_]*)['"`]\]/g, // process.env['variable_name']
-      /process\.env\[`([a-z][a-z0-9_]*)`\]/g,         // process.env[`variable_name`]
-      /process\.env\[([a-z][a-z0-9_]*)\]/g,            // process.env[variable_name]
-      /process\.env\.([A-Za-z][A-Za-z0-9_]*)/g,       // process.env.MixedCase
-      /process\.env\[['"`]([A-Za-z][A-Za-z0-9_]*)['"`]\]/g, // process.env['MixedCase']
-      /process\.env\[`([A-Za-z][A-Za-z0-9_]*)`\]/g,   // process.env[`MixedCase`]
-      /process\.env\[([A-Za-z][A-Za-z0-9_]*)\]/g,     // process.env[MixedCase]
+      /process\.env\.([A-Z_][A-Z0-9_]*)/g,
+      /process\.env\[['"`]([A-Z_][A-Z0-9_]*)['"`]\]/g,
+      /process\.env\[`([A-Z_][A-Z0-9_]*)`\]/g,
+      /process\.env\[([A-Z_][A-Z0-9_]*)\]/g,
+      /process\.env\.([a-z][a-z0-9_]*)/g,
+      /process\.env\[['"`]([a-z][a-z0-9_]*)['"`]\]/g,
+      /process\.env\[`([a-z][a-z0-9_]*)`\]/g,
+      /process\.env\[([a-z][a-z0-9_]*)\]/g,
+      /process\.env\.([A-Za-z][A-Za-z0-9_]*)/g,
+      /process\.env\[['"`]([A-Za-z][A-Za-z0-9_]*)['"`]\]/g,
+      /process\.env\[`([A-Za-z][A-Za-z0-9_]*)`\]/g,
+      /process\.env\[([A-Za-z][A-Za-z0-9_]*)\]/g,
     ];
 
     const detectedVars = new Set();
@@ -433,7 +419,6 @@ const BotEditor = () => {
       }
     });
 
-    // Convert to array and filter out common Node.js built-ins
     const commonBuiltins = ['NODE_ENV', 'PATH', 'HOME', 'USER', 'PWD', 'SHELL', 'LANG', 'TZ'];
     const filteredVars = Array.from(detectedVars)
       .filter(varName => !commonBuiltins.includes(varName) && varName.length > 1);
@@ -443,15 +428,12 @@ const BotEditor = () => {
       return;
     }
 
-    // Create environment variable objects
     const newVars = filteredVars.map(varName => {
-      // Determine if it's likely a secret based on the name
       const secretKeywords = ['token', 'secret', 'key', 'password', 'pass', 'auth', 'private'];
       const isSecret = secretKeywords.some(keyword => 
         varName.toLowerCase().includes(keyword)
       );
       
-      // Set default values for common variables
       let defaultValue = '';
       if (varName === 'BOT_TOKEN' || varName === 'TOKEN') {
         defaultValue = bot?.token || '';
@@ -470,7 +452,6 @@ const BotEditor = () => {
       };
     });
 
-    // Merge with existing variables, avoiding duplicates
     const existingKeys = environmentVariables.map(v => v.key);
     const uniqueNewVars = newVars
       .filter(v => !existingKeys.includes(v.key));
@@ -484,7 +465,6 @@ const BotEditor = () => {
     toast.success(`Detected and added ${uniqueNewVars.length} environment variables from code!`);
   };
 
-  // Error Functions
   const clearErrors = () => {
     setErrors([]);
     toast.success('Errors cleared');
@@ -496,7 +476,6 @@ const BotEditor = () => {
   };
 
   const formatError = (error) => {
-    // Try to parse and format error messages
     if (typeof error === 'string') {
       return error;
     }

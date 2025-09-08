@@ -24,7 +24,6 @@ export const BotProvider = ({ children }) => {
     timeout: 10000,
   });
 
-  // Fetch all bots
   const fetchBots = async () => {
     try {
       setLoading(true);
@@ -39,7 +38,6 @@ export const BotProvider = ({ children }) => {
     }
   };
 
-  // Create a new bot
   const createBot = async (botData) => {
     try {
       const response = await api.post('/bots', botData);
@@ -57,12 +55,10 @@ export const BotProvider = ({ children }) => {
     }
   };
 
-  // Update a bot
   const updateBot = async (botId, updates) => {
     try {
       const response = await api.put(`/bots/${botId}`, updates);
       if (response.data.success) {
-        // Update with the returned bot data if available, otherwise use updates
         const updatedBot = response.data.bot || { ...updates };
         setBots(prev => prev.map(bot => 
           bot.id === botId ? { ...bot, ...updatedBot } : bot
@@ -79,7 +75,6 @@ export const BotProvider = ({ children }) => {
     }
   };
 
-  // Delete a bot
   const deleteBot = async (botId) => {
     try {
       const response = await api.delete(`/bots/${botId}`);
@@ -97,7 +92,6 @@ export const BotProvider = ({ children }) => {
     }
   };
 
-  // Start a bot
   const startBot = async (botId) => {
     try {
       const response = await api.post(`/bots/${botId}/start`);
@@ -117,7 +111,6 @@ export const BotProvider = ({ children }) => {
     }
   };
 
-  // Stop a bot
   const stopBot = async (botId) => {
     try {
       const response = await api.post(`/bots/${botId}/stop`);
@@ -137,52 +130,49 @@ export const BotProvider = ({ children }) => {
     }
   };
 
-  // Get bot logs
   const getBotLogs = async (botId, options = {}) => {
     try {
       const params = new URLSearchParams(options);
       const response = await api.get(`/bots/${botId}/logs?${params}`);
       return response.data.logs || [];
     } catch (err) {
-      toast.error('Failed to fetch bot logs');
+      const errorMsg = err.response?.data?.error || err.message || 'Failed to fetch bot logs';
+      toast.error(errorMsg);
       return [];
     }
   };
 
-  // Get bot errors
   const getBotErrors = async (botId, options = {}) => {
     try {
       const params = new URLSearchParams(options);
       const response = await api.get(`/bots/${botId}/errors?${params}`);
       return response.data.errors || [];
     } catch (err) {
-      toast.error('Failed to fetch bot errors');
+      const errorMsg = err.response?.data?.error || err.message || 'Failed to fetch bot errors';
+      toast.error(errorMsg);
       return [];
     }
   };
 
-  // Get supported languages
   const getSupportedLanguages = async () => {
     try {
-      // Force JavaScript only on the client
       return [{ id: 'javascript', name: 'JavaScript', extension: 'js' }];
     } catch (err) {
       return [{ id: 'javascript', name: 'JavaScript', extension: 'js' }];
     }
   };
 
-  // Get bot file content
   const getBotFile = async (botId) => {
     try {
       const response = await api.get(`/files/${botId}`);
       return response.data;
     } catch (err) {
-      toast.error('Failed to fetch bot file');
+      const errorMsg = err.response?.data?.error || err.message || 'Failed to fetch bot file';
+      toast.error(errorMsg);
       throw err;
     }
   };
 
-  // Update bot file content
   const updateBotFile = async (botId, content) => {
     try {
       const response = await api.put(`/files/${botId}`, { content });
@@ -199,12 +189,10 @@ export const BotProvider = ({ children }) => {
     }
   };
 
-  // Get a single bot
   const getBot = async (botId) => {
     try {
       const response = await api.get(`/bots/${botId}`);
       if (response.data.success) {
-        // Update the bot in the local state
         setBots(prevBots => {
           const existingBot = prevBots.find(b => b.id === botId);
           if (existingBot) {
