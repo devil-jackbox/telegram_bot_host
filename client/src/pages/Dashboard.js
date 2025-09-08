@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import CreateBotModal from '../components/CreateBotModal';
 import { 
   Bot, 
   Play, 
@@ -86,6 +87,8 @@ const Dashboard = () => {
     );
   }
 
+  const [showCreateModal, setShowCreateModal] = useState(false);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -94,10 +97,10 @@ const Dashboard = () => {
           <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
           <p className="text-gray-600">Manage your Telegram bots</p>
         </div>
-        <Link to="/" className="btn-primary">
+        <button onClick={() => setShowCreateModal(true)} className="btn-primary">
           <Plus size={16} />
           Create Bot
-        </Link>
+        </button>
       </div>
 
       {/* Statistics */}
@@ -162,10 +165,10 @@ const Dashboard = () => {
             <Bot size={48} className="mx-auto text-gray-400 mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No bots yet</h3>
             <p className="text-gray-600 mb-6">Create your first Telegram bot to get started</p>
-            <Link to="/" className="btn-primary">
+            <button onClick={() => setShowCreateModal(true)} className="btn-primary">
               <Plus size={16} />
               Create Your First Bot
-            </Link>
+            </button>
           </div>
         ) : (
           <div className="divide-y divide-gray-200">
@@ -242,6 +245,8 @@ const Dashboard = () => {
           </div>
         )}
       </div>
+
+      <CreateBotModal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} />
     </div>
   );
 };
