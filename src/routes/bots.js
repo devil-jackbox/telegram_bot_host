@@ -3,7 +3,6 @@ const router = express.Router();
 const BotManager = require('../botManager');
 const logger = require('../utils/logger');
 
-// Get bot manager instance
 let botManager;
 try {
   botManager = BotManager.getInstance();
@@ -12,9 +11,12 @@ try {
   botManager = null;
 }
 
-// Get all bots
 router.get('/', (req, res) => {
   try {
+    if (!botManager) {
+      return res.status(500).json({ success: false, error: 'Bot manager not available' });
+    }
+    
     const bots = botManager.getAllBots().map(b => ({
       ...b,
       status: botManager.botProcesses && botManager.botProcesses.has(b.id) ? 'running' : 'stopped'
@@ -25,9 +27,12 @@ router.get('/', (req, res) => {
   }
 });
 
-// Get a specific bot
 router.get('/:botId', (req, res) => {
   try {
+    if (!botManager) {
+      return res.status(500).json({ success: false, error: 'Bot manager not available' });
+    }
+    
     const { botId } = req.params;
     const bot = botManager.getBot(botId);
     
@@ -42,10 +47,13 @@ router.get('/:botId', (req, res) => {
   }
 });
 
-// Create a new bot
 router.post('/', async (req, res) => {
   try {
-    const { name, token, language, code, autoStart } = req.body;
+    if (!botManager) {
+      return res.status(500).json({ success: false, error: 'Bot manager not available' });
+    }
+    
+    const { name, token, code, autoStart } = req.body;
     
     if (!name || !token) {
       return res.status(400).json({ 
@@ -53,14 +61,11 @@ router.post('/', async (req, res) => {
         error: 'Name and token are required' 
       });
     }
-    
-    // Force JavaScript only
-    const lang = 'javascript';
 
     const result = await botManager.createBot({
       name,
       token,
-      language: lang,
+      language: 'javascript',
       code: code || '',
       autoStart: autoStart || false
     });
@@ -75,9 +80,12 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Update a bot
 router.put('/:botId', async (req, res) => {
   try {
+    if (!botManager) {
+      return res.status(500).json({ success: false, error: 'Bot manager not available' });
+    }
+    
     const { botId } = req.params;
     const updates = req.body;
     
@@ -93,9 +101,12 @@ router.put('/:botId', async (req, res) => {
   }
 });
 
-// Delete a bot
 router.delete('/:botId', async (req, res) => {
   try {
+    if (!botManager) {
+      return res.status(500).json({ success: false, error: 'Bot manager not available' });
+    }
+    
     const { botId } = req.params;
     const result = await botManager.deleteBot(botId);
     
@@ -109,9 +120,12 @@ router.delete('/:botId', async (req, res) => {
   }
 });
 
-// Start a bot
 router.post('/:botId/start', async (req, res) => {
   try {
+    if (!botManager) {
+      return res.status(500).json({ success: false, error: 'Bot manager not available' });
+    }
+    
     const { botId } = req.params;
     const result = await botManager.startBot(botId);
     
@@ -125,9 +139,12 @@ router.post('/:botId/start', async (req, res) => {
   }
 });
 
-// Stop a bot
 router.post('/:botId/stop', async (req, res) => {
   try {
+    if (!botManager) {
+      return res.status(500).json({ success: false, error: 'Bot manager not available' });
+    }
+    
     const { botId } = req.params;
     const result = await botManager.stopBot(botId);
     
@@ -141,9 +158,12 @@ router.post('/:botId/stop', async (req, res) => {
   }
 });
 
-// Get bot logs
 router.get('/:botId/logs', (req, res) => {
   try {
+    if (!botManager) {
+      return res.status(500).json({ success: false, error: 'Bot manager not available' });
+    }
+    
     const { botId } = req.params;
     const logs = botManager.getBotLogs(botId);
     res.json({ success: true, logs });
@@ -152,9 +172,12 @@ router.get('/:botId/logs', (req, res) => {
   }
 });
 
-// Get bot errors
 router.get('/:botId/errors', (req, res) => {
   try {
+    if (!botManager) {
+      return res.status(500).json({ success: false, error: 'Bot manager not available' });
+    }
+    
     const { botId } = req.params;
     const errors = botManager.getBotErrors(botId);
     res.json({ success: true, errors });
@@ -163,7 +186,6 @@ router.get('/:botId/errors', (req, res) => {
   }
 });
 
-// Get supported languages
 router.get('/languages/supported', (req, res) => {
   const languages = [
     { id: 'javascript', name: 'JavaScript', extension: 'js' }

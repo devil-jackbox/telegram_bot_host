@@ -17,7 +17,6 @@ export const SocketProvider = ({ children }) => {
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    // In production, connect to the same domain
     const socketUrl = process.env.NODE_ENV === 'production' 
       ? window.location.origin 
       : (process.env.REACT_APP_API_URL || 'http://localhost:3001');
@@ -35,12 +34,10 @@ export const SocketProvider = ({ children }) => {
     newSocket.on('disconnect', () => {
       setIsConnected(false);
       console.log('Disconnected from server');
-      // Route connection messages to console only (no popup spam)
     });
 
     newSocket.on('connect_error', (error) => {
       console.error('Connection error:', error);
-      // Suppress popup toasts for connection errors
     });
 
     newSocket.on('bot-status', (data) => {
@@ -52,12 +49,10 @@ export const SocketProvider = ({ children }) => {
     });
 
     newSocket.on('bot-error', (data) => {
-      // Errors are displayed in the Errors tab; avoid toast spam
       console.error('Bot error:', data);
     });
 
     setSocket(newSocket);
-    // Expose globally for components that need direct access
     window.socket = newSocket;
 
     return () => {
