@@ -267,7 +267,6 @@ const BotEditor = () => {
       
       setBot(prevBot => ({ ...prevBot, status: 'starting' }));
       await startBot(botId);
-      toast.success('Bot started successfully!');
     } catch (error) {
       console.error('Failed to start bot:', error);
       toast.error('Failed to start bot');
@@ -280,7 +279,6 @@ const BotEditor = () => {
       try {
         setBot(prevBot => ({ ...prevBot, status: 'stopping' }));
         await stopBot(botId);
-        toast.success('Bot stopped successfully!');
       } catch (error) {
         console.error('Failed to stop bot:', error);
         toast.error('Failed to stop bot');
