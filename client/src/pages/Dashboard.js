@@ -21,6 +21,7 @@ import { useBots } from '../contexts/BotContext';
 const Dashboard = () => {
   const { bots, loading, startBot, stopBot, deleteBot } = useBots();
   const [deletingBot, setDeletingBot] = useState(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   const runningBots = bots.filter(bot => bot.status === 'running');
   const stoppedBots = bots.filter(bot => bot.status === 'stopped' || !bot.status);
@@ -86,8 +87,6 @@ const Dashboard = () => {
       </div>
     );
   }
-
-  const [showCreateModal, setShowCreateModal] = useState(false);
 
   return (
     <div className="space-y-6">

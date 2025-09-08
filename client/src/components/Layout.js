@@ -8,7 +8,6 @@ import {
   X, 
   Wifi, 
   WifiOff,
-  Plus,
   Code,
   Activity,
   AlertTriangle
