@@ -5,12 +5,15 @@ const connectDB = async () => {
   try {
     const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/telegram-bot-platform';
     
+    if (!mongoURI || mongoURI === 'mongodb://localhost:27017/telegram-bot-platform') {
+      logger.warn('MONGODB_URI not set, using local MongoDB. This may cause issues in production.');
+    }
+    
     const options = {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
       maxPoolSize: 10,
-      serverSelectionTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 10000,
       socketTimeoutMS: 45000,
+      connectTimeoutMS: 10000,
     };
 
     await mongoose.connect(mongoURI, options);
@@ -33,7 +36,11 @@ const connectDB = async () => {
 
   } catch (error) {
     logger.error('MongoDB connection failed:', error);
-    process.exit(1);
+    if (process.env.NODE_ENV === 'production') {
+      process.exit(1);
+    } else {
+      logger.warn('Continuing without MongoDB in development mode');
+    }
   }
 };
 
