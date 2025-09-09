@@ -37,7 +37,7 @@ router.get('/:id', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    const { name, token, language = 'javascript', autoStart = false, environmentVariables = [] } = req.body;
+    const { name, token, language = 'javascript', autoStart = false, environmentVariables = [], code = '' } = req.body;
     
     if (!name || !token) {
       return res.status(400).json({ success: false, error: 'Name and token are required' });
@@ -48,7 +48,8 @@ router.post('/', async (req, res) => {
       token,
       language,
       autoStart,
-      environmentVariables
+      environmentVariables,
+      code
     });
 
     res.status(201).json({ success: true, config: bot });

@@ -9,7 +9,7 @@ const logger = require('../utils/logger');
 class BotService {
   async createBot(botData) {
     try {
-      const { name, token, language = 'javascript', autoStart = false, environmentVariables = [] } = botData;
+      const { name, token, language = 'javascript', autoStart = false, environmentVariables = [], code = '' } = botData;
       
       const bot = new Bot({
         id: require('uuid').v4(),
@@ -24,7 +24,7 @@ class BotService {
 
       const botCode = new BotCode({
         botId: bot.id,
-        code: ''
+        code: code || ''
       });
       await botCode.save();
 
