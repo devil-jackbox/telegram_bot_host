@@ -7,6 +7,41 @@ const { encrypt, decrypt } = require('../utils/encryption');
 const logger = require('../utils/logger');
 
 class BotService {
+  async pruneBotLogs(botId, keep = 50) {
+    try {
+      const count = await BotLog.countDocuments({ botId });
+      if (count > keep) {
+        const toRemove = count - keep;
+        const oldest = await BotLog.find({ botId })
+          .sort({ timestamp: 1 })
+          .limit(toRemove)
+          .select('_id');
+        if (oldest.length) {
+          await BotLog.deleteMany({ _id: { $in: oldest.map(d => d._id) } });
+        }
+      }
+    } catch (error) {
+      logger.error('Error pruning bot logs:', error);
+    }
+  }
+
+  async pruneBotErrors(botId, keep = 50) {
+    try {
+      const count = await BotError.countDocuments({ botId });
+      if (count > keep) {
+        const toRemove = count - keep;
+        const oldest = await BotError.find({ botId })
+          .sort({ timestamp: 1 })
+          .limit(toRemove)
+          .select('_id');
+        if (oldest.length) {
+          await BotError.deleteMany({ _id: { $in: oldest.map(d => d._id) } });
+        }
+      }
+    } catch (error) {
+      logger.error('Error pruning bot errors:', error);
+    }
+  }
   async createBot(botData) {
     try {
       const { name, token, language = 'javascript', autoStart = false, environmentVariables = [], code = '' } = botData;
@@ -171,6 +206,8 @@ class BotService {
         timestamp: new Date()
       });
       await botLog.save();
+      // Keep only latest 50 per bot
+      this.pruneBotLogs(botId, 50);
       return true;
     } catch (error) {
       logger.error('Error adding bot log:', error);
@@ -198,6 +235,8 @@ class BotService {
         timestamp: new Date()
       });
       await botError.save();
+      // Keep only latest 50 per bot
+      this.pruneBotErrors(botId, 50);
       return true;
     } catch (error) {
       logger.error('Error adding bot error:', error);
