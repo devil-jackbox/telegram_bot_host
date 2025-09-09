@@ -259,8 +259,29 @@ bot.on('message', async (msg) => {
 });
 
 if (botMode === 'polling') {
-  bot.on('polling_error', (error) => {
+  bot.on('polling_error', async (error) => {
     console.error('❌ Polling error:', error);
+    try {
+      const isConflict = (error && (error.statusCode === 409 || error.code === 'ETELEGRAM' || String(error).includes('409')));
+      if (isConflict) {
+        console.log('🔄 Recovering from 409 conflict: clearing webhook and restarting polling...');
+        try {
+          await bot.deleteWebHook({ drop_pending_updates: true });
+        } catch {}
+        try {
+          await bot.stopPolling();
+        } catch {}
+        await new Promise(r => setTimeout(r, 1500));
+        try {
+          await bot.startPolling({ params: { timeout: 10 } });
+          console.log('✅ Polling restarted after conflict');
+        } catch (e) {
+          console.error('❌ Failed to restart polling:', e);
+        }
+      }
+    } catch (e) {
+      console.error('❌ Recovery handler error:', e);
+    }
   });
 
   bot.on('polling_start', () => {
