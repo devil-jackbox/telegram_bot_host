@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const BotManager = require('../botManager');
+const BotService = require('../services/BotService');
 const logger = require('../utils/logger');
 
 let botManager;
@@ -11,187 +12,159 @@ try {
   botManager = null;
 }
 
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
-    if (!botManager) {
-      return res.status(500).json({ success: false, error: 'Bot manager not available' });
-    }
-    
-    const bots = botManager.getAllBots().map(b => ({
-      ...b,
-      status: botManager.botProcesses && botManager.botProcesses.has(b.id) ? 'running' : 'stopped'
-    }));
+    const bots = await BotService.getAllBots();
     res.json({ success: true, bots });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    logger.error('Error getting bots:', error);
+    res.status(500).json({ success: false, error: 'Failed to get bots' });
   }
 });
 
-router.get('/:botId', (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
-    if (!botManager) {
-      return res.status(500).json({ success: false, error: 'Bot manager not available' });
-    }
-    
-    const { botId } = req.params;
-    const bot = botManager.getBot(botId);
-    
+    const bot = await BotService.getBot(req.params.id);
     if (!bot) {
       return res.status(404).json({ success: false, error: 'Bot not found' });
     }
-    
-    const status = botManager.botProcesses && botManager.botProcesses.has(botId) ? 'running' : 'stopped';
-    res.json({ success: true, bot: { ...bot, status }, status: { running: status === 'running' } });
+    res.json({ success: true, config: bot });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    logger.error('Error getting bot:', error);
+    res.status(500).json({ success: false, error: 'Failed to get bot' });
   }
 });
 
 router.post('/', async (req, res) => {
   try {
-    if (!botManager) {
-      return res.status(500).json({ success: false, error: 'Bot manager not available' });
-    }
-    
-    const { name, token, code, autoStart } = req.body;
+    const { name, token, language = 'javascript', autoStart = false, environmentVariables = [] } = req.body;
     
     if (!name || !token) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Name and token are required' 
-      });
+      return res.status(400).json({ success: false, error: 'Name and token are required' });
     }
 
-    const result = await botManager.createBot({
+    const bot = await BotService.createBot({
       name,
       token,
-      language: 'javascript',
-      code: code || '',
-      autoStart: autoStart || false
+      language,
+      autoStart,
+      environmentVariables
     });
-    
-    if (result.success) {
-      res.status(201).json(result);
-    } else {
-      res.status(400).json(result);
-    }
+
+    res.status(201).json({ success: true, config: bot });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    logger.error('Error creating bot:', error);
+    res.status(500).json({ success: false, error: 'Failed to create bot' });
   }
 });
 
-router.put('/:botId', async (req, res) => {
+router.put('/:id', async (req, res) => {
+  try {
+    const botId = req.params.id;
+    const updateData = req.body;
+
+    const bot = await BotService.updateBot(botId, updateData);
+    if (!bot) {
+      return res.status(404).json({ success: false, error: 'Bot not found' });
+    }
+
+    res.json({ success: true, config: bot });
+  } catch (error) {
+    logger.error('Error updating bot:', error);
+    res.status(500).json({ success: false, error: 'Failed to update bot' });
+  }
+});
+
+router.delete('/:id', async (req, res) => {
+  try {
+    const botId = req.params.id;
+    
+    if (botManager) {
+      await botManager.stopBot(botId);
+    }
+    
+    const success = await BotService.deleteBot(botId);
+    if (!success) {
+      return res.status(404).json({ success: false, error: 'Bot not found' });
+    }
+
+    res.json({ success: true, message: 'Bot deleted successfully' });
+  } catch (error) {
+    logger.error('Error deleting bot:', error);
+    res.status(500).json({ success: false, error: 'Failed to delete bot' });
+  }
+});
+
+router.post('/:id/start', async (req, res) => {
   try {
     if (!botManager) {
       return res.status(500).json({ success: false, error: 'Bot manager not available' });
     }
+
+    const botId = req.params.id;
+    const bot = await BotService.getBot(botId);
     
-    const { botId } = req.params;
-    const updates = req.body;
-    
-    const result = await botManager.updateBot(botId, updates);
-    
-    if (result.success) {
-      res.json(result);
-    } else {
-      res.status(400).json(result);
+    if (!bot) {
+      return res.status(404).json({ success: false, error: 'Bot not found' });
     }
+
+    await botManager.startBot(botId);
+    await BotService.updateBot(botId, { status: 'running' });
+    
+    res.json({ success: true, message: 'Bot started successfully' });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    logger.error('Error starting bot:', error);
+    res.status(500).json({ success: false, error: 'Failed to start bot' });
   }
 });
 
-router.delete('/:botId', async (req, res) => {
+router.post('/:id/stop', async (req, res) => {
   try {
     if (!botManager) {
       return res.status(500).json({ success: false, error: 'Bot manager not available' });
     }
+
+    const botId = req.params.id;
+    const bot = await BotService.getBot(botId);
     
-    const { botId } = req.params;
-    const result = await botManager.deleteBot(botId);
-    
-    if (result.success) {
-      res.json(result);
-    } else {
-      res.status(400).json(result);
+    if (!bot) {
+      return res.status(404).json({ success: false, error: 'Bot not found' });
     }
+
+    await botManager.stopBot(botId);
+    await BotService.updateBot(botId, { status: 'stopped' });
+    
+    res.json({ success: true, message: 'Bot stopped successfully' });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    logger.error('Error stopping bot:', error);
+    res.status(500).json({ success: false, error: 'Failed to stop bot' });
   }
 });
 
-router.post('/:botId/start', async (req, res) => {
+router.get('/:id/logs', async (req, res) => {
   try {
-    if (!botManager) {
-      return res.status(500).json({ success: false, error: 'Bot manager not available' });
-    }
+    const botId = req.params.id;
+    const limit = parseInt(req.query.limit) || 100;
     
-    const { botId } = req.params;
-    const result = await botManager.startBot(botId);
-    
-    if (result.success) {
-      res.json(result);
-    } else {
-      res.status(400).json(result);
-    }
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-router.post('/:botId/stop', async (req, res) => {
-  try {
-    if (!botManager) {
-      return res.status(500).json({ success: false, error: 'Bot manager not available' });
-    }
-    
-    const { botId } = req.params;
-    const result = await botManager.stopBot(botId);
-    
-    if (result.success) {
-      res.json(result);
-    } else {
-      res.status(400).json(result);
-    }
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-router.get('/:botId/logs', (req, res) => {
-  try {
-    if (!botManager) {
-      return res.status(500).json({ success: false, error: 'Bot manager not available' });
-    }
-    
-    const { botId } = req.params;
-    const logs = botManager.getBotLogs(botId);
+    const logs = await BotService.getBotLogs(botId, limit);
     res.json({ success: true, logs });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    logger.error('Error getting bot logs:', error);
+    res.status(500).json({ success: false, error: 'Failed to get bot logs' });
   }
 });
 
-router.get('/:botId/errors', (req, res) => {
+router.get('/:id/errors', async (req, res) => {
   try {
-    if (!botManager) {
-      return res.status(500).json({ success: false, error: 'Bot manager not available' });
-    }
+    const botId = req.params.id;
+    const limit = parseInt(req.query.limit) || 50;
     
-    const { botId } = req.params;
-    const errors = botManager.getBotErrors(botId);
+    const errors = await BotService.getBotErrors(botId, limit);
     res.json({ success: true, errors });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    logger.error('Error getting bot errors:', error);
+    res.status(500).json({ success: false, error: 'Failed to get bot errors' });
   }
-});
-
-router.get('/languages/supported', (req, res) => {
-  const languages = [
-    { id: 'javascript', name: 'JavaScript', extension: 'js' }
-  ];
-  
-  res.json({ success: true, languages });
 });
 
 module.exports = router;

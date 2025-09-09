@@ -3,6 +3,7 @@ const path = require('path');
 const { spawn } = require('child_process');
 const { v4: uuidv4 } = require('uuid');
 const logger = require('./utils/logger');
+const BotService = require('./services/BotService');
 
 class BotManager {
   constructor(io = null) {
@@ -35,98 +36,68 @@ class BotManager {
 
   async loadExistingBots() {
     try {
-      if (!await fs.pathExists(this.botsDir)) {
-        await fs.ensureDir(this.botsDir);
-        logger.info('Created bots directory');
-        return;
-      }
-
-      const botDirs = await fs.readdir(this.botsDir);
-      for (const botDir of botDirs) {
-        try {
-          const botPath = path.join(this.botsDir, botDir);
-          const configPath = path.join(botPath, 'config.json');
-          
-          if (await fs.pathExists(configPath)) {
-            const config = await fs.readJson(configPath);
-            this.bots.set(botDir, config);
-            this.botLogs.set(botDir, []);
-            this.botErrors.set(botDir, []);
-            
-            if (config.autoStart && process.env.NODE_ENV !== 'production') {
-              this.startBot(botDir);
-            }
-          }
-        } catch (botError) {
-          logger.error(`Error loading bot ${botDir}:`, botError);
+      const bots = await BotService.getAllBots();
+      
+      for (const bot of bots) {
+        this.bots.set(bot.id, bot);
+        
+        if (bot.autoStart && process.env.NODE_ENV !== 'production') {
+          setTimeout(() => {
+            this.startBot(bot.id);
+          }, 2000);
         }
       }
-      logger.info(`Loaded ${this.bots.size} existing bots`);
+      
+      logger.info(`Loaded ${bots.length} bots from database`);
     } catch (error) {
-      logger.error('Error loading existing bots:', error);
+      logger.error('Error loading bots from database:', error);
     }
   }
 
-  async createBot(botData) {
-    const botId = uuidv4();
-    const botDir = path.join(this.botsDir, botId);
-    
+  async createBot(config) {
     try {
+      const bot = await BotService.createBot(config);
+      this.bots.set(bot.id, bot);
+      
+      await this.createBotFile(bot);
+      await this.ensureDependencies(bot);
+      
+      return bot;
+    } catch (error) {
+      logger.error('Error creating bot:', error);
+      throw error;
+    }
+  }
+
+  async createBotFile(bot) {
+    try {
+      const botDir = path.join(this.botsDir, bot.id);
       await fs.ensureDir(botDir);
       
-      const config = {
-        id: botId,
-        name: botData.name,
-        token: botData.token,
-        language: 'javascript',
-        code: botData.code || '',
-        autoStart: botData.autoStart || false,
-        environmentVariables: botData.environmentVariables || [
-          { key: 'BOT_TOKEN', value: botData.token, isSecret: true },
-          { key: 'BOT_MODE', value: 'polling', isSecret: false },
-          { key: 'PROTECT_CONTENT', value: 'false', isSecret: false }
-        ],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+      const fileName = 'bot.js';
+      const filePath = path.join(botDir, fileName);
+      
+      const code = await BotService.getBotCode(bot.id);
+      const finalCode = code || this.getBoilerplateCode(bot.token);
+      
+      await fs.writeFile(filePath, finalCode);
+      
+      const packageJson = {
+        name: `bot-${bot.id}`,
+        version: "1.0.0",
+        main: fileName,
+        dependencies: {
+          "node-telegram-bot-api": "^0.64.0"
+        }
       };
-
-      await fs.writeJson(path.join(botDir, 'config.json'), config, { spaces: 2 });
-      await this.createBotFile(botDir, config);
       
-      this.botLogs.set(botId, []);
-      this.botErrors.set(botId, []);
-      this.bots.set(botId, config);
+      await fs.writeFile(path.join(botDir, 'package.json'), JSON.stringify(packageJson, null, 2));
       
-      logger.info(`Created bot: ${botId} (${config.name})`);
-      
-      return { success: true, bot: config };
+      logger.info(`Created bot file for ${bot.id}`);
     } catch (error) {
-      logger.error(`Failed to create bot: ${error.message}`);
-      return { success: false, error: error.message };
+      logger.error('Error creating bot file:', error);
+      throw error;
     }
-  }
-
-  async createBotFile(botDir, config) {
-    const fileName = 'bot.js';
-    const filePath = path.join(botDir, fileName);
-    
-    let code = config.code;
-    
-    if (!code || code.trim() === '') {
-      code = this.getBoilerplateCode(config.token);
-    }
-    
-    await fs.writeFile(filePath, code);
-    
-    const packageJson = {
-      name: `bot-${config.id}`,
-      version: "1.0.0",
-      main: fileName,
-      dependencies: {
-        "node-telegram-bot-api": "^0.64.0"
-      }
-    };
-    await fs.writeJson(path.join(botDir, 'package.json'), packageJson, { spaces: 2 });
   }
 
   getBoilerplateCode(token) {
@@ -333,322 +304,247 @@ console.log('📝 Use /start to begin chatting!');`;
         await new Promise((resolve, reject) => {
           const install = spawn('npm', ['install', '--omit=dev', '--no-audit', '--no-fund'], { 
             cwd: botDir, 
-            env: { ...(process.env||{}) } 
+            env: { 
+              ...process.env,
+              PATH: (process.env && process.env.PATH) || '/usr/local/bin:/usr/bin:/bin'
+            }
           });
-          install.stdout.on('data', d => this.addLog(bot.id, 'info', d.toString()));
-          install.stderr.on('data', d => this.addLog(bot.id, 'info', d.toString()));
+          
+          install.stdout.on('data', (data) => {
+            this.addLog(bot.id, 'info', data.toString());
+          });
+          
+          install.stderr.on('data', (data) => {
+            this.addLog(bot.id, 'error', data.toString());
+          });
+          
           install.on('close', code => code === 0 ? resolve() : reject(new Error(`npm install exited with ${code}`)));
-          install.on('error', err => reject(err));
         });
-        this.addLog(bot.id, 'info', 'Node.js dependencies installed');
       }
-    } catch (depErr) {
-      this.addError(bot.id, `Dependency installation failed: ${depErr.message}`);
-      throw depErr;
+    } catch (error) {
+      this.addError(bot.id, `Dependency installation failed: ${error.message}`);
     }
   }
 
   async startBot(botId) {
-    if (this.botProcesses.has(botId)) {
-      logger.warn(`Bot ${botId} is already running`);
-      return { success: false, error: 'Bot is already running' };
-    }
-
-    if (this.startingBots.has(botId)) {
-      logger.warn(`Bot ${botId} is already starting`);
-      return { success: false, error: 'Bot is already starting' };
-    }
-
-    const bot = this.bots.get(botId);
-    if (!bot) {
-      return { success: false, error: 'Bot not found' };
-    }
-
-    this.startingBots.add(botId);
-
     try {
+      if (this.startingBots.has(botId)) {
+        logger.warn(`Bot ${botId} is already starting`);
+        return;
+      }
+
+      this.startingBots.add(botId);
+      
+      const bot = this.bots.get(botId);
+      if (!bot) {
+        throw new Error(`Bot ${botId} not found`);
+      }
+
+      if (this.botProcesses.has(botId)) {
+        throw new Error(`Bot ${botId} is already running`);
+      }
+
       const botDir = path.join(this.botsDir, botId);
+      const botFilePath = path.join(botDir, 'bot.js');
       
       if (!await fs.pathExists(botDir)) {
         throw new Error(`Bot directory does not exist: ${botDir}`);
       }
       
-      const botFile = 'bot.js';
-      const botFilePath = path.join(botDir, botFile);
-      
       if (!await fs.pathExists(botFilePath)) {
         throw new Error(`Bot file does not exist: ${botFilePath}`);
       }
-      
-      const pidFile = path.join(botDir, 'bot.pid');
-      if (await fs.pathExists(pidFile)) {
-        try {
-          const pid = parseInt(await fs.readFile(pidFile, 'utf8'));
-          try {
-            process.kill(-pid, 'SIGTERM');
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            try {
-              process.kill(-pid, 'SIGKILL');
-            } catch {}
-          } catch (killError) {
-            logger.warn(`Could not kill existing process ${pid}: ${killError.message}`);
-          }
-          await fs.remove(pidFile);
-        } catch (fileError) {
-          logger.warn(`Error reading PID file: ${fileError.message}`);
-          try {
-            await fs.remove(pidFile);
-          } catch {}
-        }
-      }
-      
+
+      const envVars = await BotService.getBotEnvironmentVariables(botId);
       const env = {
-        ...(process.env || {}),
-        PATH: (process.env && process.env.PATH) || '/usr/local/bin:/usr/bin:/bin'
+        ...process.env,
+        BOT_TOKEN: bot.token,
+        BOT_MODE: 'polling',
+        NODE_ENV: process.env.NODE_ENV || 'production'
       };
-      
-      if (bot.environmentVariables && Array.isArray(bot.environmentVariables)) {
-        bot.environmentVariables.forEach(envVar => {
-          if (envVar.key && envVar.value !== undefined) {
-            env[envVar.key] = envVar.value;
-          }
-        });
-      } else {
-        env.BOT_TOKEN = bot.token;
-        env.NODE_ENV = 'production';
-      }
-      
-      if (!env.PORT) env.PORT = '3000';
-      if (!env.LOG_LEVEL) env.LOG_LEVEL = 'info';
-      if (!env.DEBUG) env.DEBUG = 'false';
 
-      await this.ensureDependencies(bot);
-      
-      const childProcess = spawn('node', [botFile], { cwd: botDir, env, detached: true });
-
-      this.botProcesses.set(botId, childProcess);
-      
-      try {
-        await fs.writeFile(path.join(botDir, 'bot.pid'), String(childProcess.pid));
-      } catch {}
-      
-      childProcess.stdout.on('data', (data) => {
-        const log = data.toString().trim();
-        this.addLog(botId, 'info', log);
+      envVars.forEach(envVar => {
+        env[envVar.key] = envVar.value;
       });
 
-      childProcess.stderr.on('data', (data) => {
-        const error = data.toString().trim();
-        this.addError(botId, error);
+      const child = spawn('node', [botFilePath], {
+        cwd: botDir,
+        env,
+        stdio: ['pipe', 'pipe', 'pipe']
       });
 
-      childProcess.on('close', (code) => {
+      this.botProcesses.set(botId, child);
+      this.botLogs.set(botId, []);
+      this.botErrors.set(botId, []);
+
+      child.stdout.on('data', (data) => {
+        const message = data.toString();
+        this.addLog(botId, 'info', message);
+      });
+
+      child.stderr.on('data', (data) => {
+        const message = data.toString();
+        this.addError(botId, message);
+      });
+
+      child.on('close', (code) => {
         this.botProcesses.delete(botId);
         this.startingBots.delete(botId);
-        try { 
-          fs.remove(path.join(this.botsDir, botId, 'bot.pid')); 
-        } catch {}
-        this.addLog(botId, 'info', `Bot process exited with code ${code}`);
+        
+        if (code !== 0) {
+          this.addError(botId, `Process exited with code ${code}`);
+        }
+        
+        this.addLog(botId, 'info', `Bot process ended with code ${code}`);
+        
         if (this.io) {
           this.io.to(`bot-${botId}`).emit('bot-status', { botId, status: 'stopped' });
         }
       });
 
-      childProcess.on('error', (error) => {
+      child.on('error', (error) => {
         this.addError(botId, `Process error: ${error.message}`);
         this.botProcesses.delete(botId);
         this.startingBots.delete(botId);
       });
 
-      this.addLog(botId, 'info', 'Bot started successfully');
-      if (this.io) {
-        this.io.to(`bot-${botId}`).emit('bot-status', { botId, status: 'running' });
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+
+      if (this.botProcesses.has(botId)) {
+        this.addLog(botId, 'info', 'Bot started successfully');
+        if (this.io) {
+          this.io.to(`bot-${botId}`).emit('bot-status', { botId, status: 'running' });
+        }
+      } else {
+        throw new Error('Bot failed to start');
       }
       
-      return { success: true };
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      
     } catch (error) {
-      logger.error(`Error starting bot ${botId}:`, error);
       this.addError(botId, `Failed to start bot: ${error.message}`);
       this.startingBots.delete(botId);
-      return { success: false, error: error.message };
+      throw error;
     }
   }
 
   async stopBot(botId) {
-    const childProcess = this.botProcesses.get(botId);
-    if (!childProcess) {
-      const botDir = path.join(this.botsDir, botId);
-      const pidFile = path.join(botDir, 'bot.pid');
-      
-      try {
-        if (await fs.pathExists(pidFile)) {
-          const pid = parseInt(await fs.readFile(pidFile, 'utf8'));
-          try {
-            process.kill(-pid, 'SIGTERM');
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            try {
-              process.kill(-pid, 'SIGKILL');
-            } catch {}
-            await fs.remove(pidFile);
-          } catch (killError) {
-            logger.warn(`Could not kill process ${pid}: ${killError.message}`);
-          }
-        }
-      } catch (fileError) {
-        logger.warn(`Error reading PID file for bot ${botId}: ${fileError.message}`);
-      }
-      
-      return { success: true };
-    }
-
     try {
-      try {
-        process.kill(-childProcess.pid, 'SIGTERM');
-      } catch (groupError) {
-        try {
-          childProcess.kill('SIGTERM');
-        } catch (directError) {
-          logger.warn(`Could not kill process directly: ${directError.message}`);
-        }
+      const process = this.botProcesses.get(botId);
+      if (!process) {
+        logger.warn(`Bot ${botId} is not running`);
+        return;
       }
 
-      await new Promise((resolve) => setTimeout(resolve, 3000));
-
-      if (this.botProcesses.has(botId)) {
+      const pid = process.pid;
+      if (pid) {
         try {
-          process.kill(-childProcess.pid, 'SIGKILL');
-        } catch (groupError) {
+          process.kill(-pid, 'SIGTERM');
+          await new Promise(resolve => setTimeout(resolve, 2000));
           try {
-            childProcess.kill('SIGKILL');
-          } catch (directError) {
-            logger.warn(`Could not SIGKILL process directly: ${directError.message}`);
-          }
+            process.kill(-pid, 'SIGKILL');
+          } catch {}
+        } catch (error) {
+          logger.error(`Error killing process ${pid}:`, error);
         }
-        
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-      }
-
-      const botDir = path.join(this.botsDir, botId);
-      const pidFile = path.join(botDir, 'bot.pid');
-      try {
-        await fs.remove(pidFile);
-      } catch (fileError) {
-        logger.warn(`Could not remove PID file: ${fileError.message}`);
       }
 
       this.botProcesses.delete(botId);
-      this.startingBots.delete(botId);
+      this.addLog(botId, 'info', 'Bot stopped successfully');
       
-      return { success: true };
+      if (this.io) {
+        this.io.to(`bot-${botId}`).emit('bot-status', { botId, status: 'stopped' });
+      }
     } catch (error) {
-      logger.error(`Error stopping bot ${botId}:`, error);
-      return { success: false, error: error.message };
+      this.addError(botId, error);
+      throw error;
     }
   }
 
-  async updateBot(botId, updates) {
-    const bot = this.bots.get(botId);
-    if (!bot) {
-      return { success: false, error: 'Bot not found' };
-    }
-
+  async updateBot(botId, updateData) {
     try {
-      if (this.botProcesses.has(botId)) {
-        await this.stopBot(botId);
+      const bot = await BotService.updateBot(botId, updateData);
+      if (bot) {
+        this.bots.set(botId, bot);
       }
-
-      Object.assign(bot, updates, { updatedAt: new Date().toISOString() });
-      
-      if (updates.environmentVariables && Array.isArray(updates.environmentVariables)) {
-        bot.environmentVariables = updates.environmentVariables;
-      }
-      
-      const botDir = path.join(this.botsDir, botId);
-      await fs.writeJson(path.join(botDir, 'config.json'), bot, { spaces: 2 });
-      
-      await this.createBotFile(botDir, bot);
-      
-      this.bots.set(botId, bot);
-      
-      if (bot.autoStart && updates.autoStart !== false) {
-        this.startBot(botId);
-      }
-      
-      return { success: true, bot };
+      return bot;
     } catch (error) {
-      logger.error(`Error updating bot ${botId}:`, error);
-      return { success: false, error: error.message };
+      logger.error('Error updating bot:', error);
+      throw error;
     }
   }
 
   async deleteBot(botId) {
     try {
-      if (this.botProcesses.has(botId)) {
-        await this.stopBot(botId);
-      }
-
-      const botDir = path.join(this.botsDir, botId);
-      await fs.remove(botDir);
-      
+      await this.stopBot(botId);
+      await BotService.deleteBot(botId);
       this.bots.delete(botId);
-      this.botProcesses.delete(botId);
-      this.botLogs.delete(botId);
-      this.botErrors.delete(botId);
-      this.startingBots.delete(botId);
       
-      logger.info(`Deleted bot: ${botId}`);
-      return { success: true };
+      const botDir = path.join(this.botsDir, botId);
+      if (await fs.pathExists(botDir)) {
+        await fs.remove(botDir);
+      }
+      
+      return true;
     } catch (error) {
-      logger.error(`Error deleting bot ${botId}:`, error);
-      return { success: false, error: error.message };
+      logger.error('Error deleting bot:', error);
+      throw error;
     }
   }
 
-  addLog(botId, level, message) {
-    const logs = this.botLogs.get(botId) || [];
-    const logEntry = {
-      timestamp: new Date().toISOString(),
-      level,
-      message
-    };
-    
-    logs.push(logEntry);
-    
-    if (logs.length > 500) {
-      logs.splice(0, logs.length - 500);
-    }
-    
-    this.botLogs.set(botId, logs);
-    if (this.io) {
-      this.io.to(`bot-${botId}`).emit('bot-log', { botId, log: logEntry });
-    }
-  }
-
-  addError(botId, error) {
-    const errors = this.botErrors.get(botId) || [];
-    const errorEntry = {
-      timestamp: new Date().toISOString(),
-      error
-    };
-    
-    errors.push(errorEntry);
-    
-    if (errors.length > 50) {
-      errors.splice(0, errors.length - 50);
-    }
-    
-    this.botErrors.set(botId, errors);
-    if (this.io) {
-      this.io.to(`bot-${botId}`).emit('bot-error', { botId, error: errorEntry });
-    }
+  getAllBots() {
+    return Array.from(this.bots.values());
   }
 
   getBot(botId) {
     return this.bots.get(botId);
   }
 
-  getAllBots() {
-    return Array.from(this.bots.values());
+  addLog(botId, level, message) {
+    try {
+      const logs = this.botLogs.get(botId) || [];
+      logs.push({
+        level,
+        message: message.trim(),
+        timestamp: new Date()
+      });
+      
+      if (logs.length > 500) {
+        logs.splice(0, logs.length - 500);
+      }
+      
+      this.botLogs.set(botId, logs);
+      BotService.addBotLog(botId, level, message.trim());
+      
+      if (this.io) {
+        this.io.to(`bot-${botId}`).emit('bot-log', { botId, log: { level, message: message.trim(), timestamp: new Date() } });
+      }
+    } catch (error) {
+      logger.error('Error adding log:', error);
+    }
+  }
+
+  addError(botId, error) {
+    try {
+      const errors = this.botErrors.get(botId) || [];
+      errors.push({
+        error: error.toString(),
+        timestamp: new Date()
+      });
+      
+      if (errors.length > 50) {
+        errors.splice(0, errors.length - 50);
+      }
+      
+      this.botErrors.set(botId, errors);
+      BotService.addBotError(botId, error.toString());
+      
+      if (this.io) {
+        this.io.to(`bot-${botId}`).emit('bot-error', { botId, error: error.toString() });
+      }
+    } catch (err) {
+      logger.error('Error adding error:', err);
+    }
   }
 
   getBotLogs(botId) {
@@ -659,71 +555,25 @@ console.log('📝 Use /start to begin chatting!');`;
     return this.botErrors.get(botId) || [];
   }
 
-  getBotStatus(botId) {
-    return {
-      running: this.botProcesses.has(botId),
-      logs: this.getBotLogs(botId),
-      errors: this.getBotErrors(botId)
-    };
-  }
-
-  async stopAllBots() {
-    logger.info('Stopping all bots...');
-    const botIds = Array.from(this.botProcesses.keys());
-    
-    for (const botId of botIds) {
-      try {
-        await this.stopBot(botId);
-      } catch (error) {
-        logger.error(`Error stopping bot ${botId}:`, error);
-      }
-    }
-    
-    logger.info('All bots stopped');
-  }
-
   async cleanupOrphanedProcesses() {
-    logger.info('Checking for orphaned bot processes...');
-    
     try {
-      const botDirs = await fs.readdir(this.botsDir);
+      const pidFiles = await fs.readdir(this.botsDir).catch(() => []);
       
-      for (const botDir of botDirs) {
-        const botPath = path.join(this.botsDir, botDir);
-        const pidFile = path.join(botPath, 'bot.pid');
-        
-        if (await fs.pathExists(pidFile)) {
+      for (const pidFile of pidFiles) {
+        if (pidFile.endsWith('.pid')) {
+          const pidPath = path.join(this.botsDir, pidFile);
+          const pid = parseInt(await fs.readFile(pidPath, 'utf8'));
+          
           try {
-            const pid = parseInt(await fs.readFile(pidFile, 'utf8'));
-            logger.info(`Found orphaned PID file for bot ${botDir}, PID: ${pid}`);
-            
-            try {
-              process.kill(pid, 0);
-              logger.warn(`Process ${pid} is still running, killing it...`);
-              
-              try {
-                process.kill(-pid, 'SIGTERM');
-                await new Promise(resolve => setTimeout(resolve, 2000));
-                process.kill(-pid, 'SIGKILL');
-              } catch {}
-              
-            } catch (checkError) {
-              logger.info(`Process ${pid} is not running, removing PID file`);
-            }
-            
-            await fs.remove(pidFile);
-            logger.info(`Cleaned up orphaned process for bot ${botDir}`);
-            
+            process.kill(pid, 0);
           } catch (error) {
-            logger.warn(`Error cleaning up orphaned process for bot ${botDir}:`, error);
-            try {
-              await fs.remove(pidFile);
-            } catch {}
+            await fs.remove(pidPath);
+            logger.info(`Cleaned up orphaned PID file: ${pidFile}`);
           }
         }
       }
     } catch (error) {
-      logger.error('Error during orphaned process cleanup:', error);
+      logger.error('Error cleaning up orphaned processes:', error);
     }
   }
 }
