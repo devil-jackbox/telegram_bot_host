@@ -334,10 +334,18 @@ console.log('📝 Use /start to begin chatting!');`;
       }
 
       this.startingBots.add(botId);
-      
-      const bot = this.bots.get(botId);
+      // Ensure bot is loaded from DB if not present in memory yet
+      let bot = this.bots.get(botId);
       if (!bot) {
-        throw new Error(`Bot ${botId} not found`);
+        bot = await BotService.getBot(botId);
+        if (bot) {
+          this.bots.set(botId, bot);
+          // Ensure bot files and dependencies exist before starting
+          await this.createBotFile(bot).catch(() => {});
+          await this.ensureDependencies(bot).catch(() => {});
+        } else {
+          throw new Error(`Bot ${botId} not found`);
+        }
       }
 
       if (this.botProcesses.has(botId)) {
@@ -347,12 +355,12 @@ console.log('📝 Use /start to begin chatting!');`;
       const botDir = path.join(this.botsDir, botId);
       const botFilePath = path.join(botDir, 'bot.js');
       
+      // Create bot directory and file if missing
       if (!await fs.pathExists(botDir)) {
-        throw new Error(`Bot directory does not exist: ${botDir}`);
+        await fs.ensureDir(botDir);
       }
-      
       if (!await fs.pathExists(botFilePath)) {
-        throw new Error(`Bot file does not exist: ${botFilePath}`);
+        await this.createBotFile(bot);
       }
 
       const envVars = await BotService.getBotEnvironmentVariables(botId);
