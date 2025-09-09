@@ -9,6 +9,7 @@ const path = require('path');
 const fs = require('fs-extra');
 const { v4: uuidv4 } = require('uuid');
 const logger = require('./src/utils/logger');
+const connectDB = require('./src/database/connection');
 
 require('dotenv').config();
 
@@ -208,10 +209,21 @@ process.on('unhandledRejection', (reason, promise) => {
 const PORT = process.env.PORT || 3001;
 const HOST = process.env.HOST || '0.0.0.0';
 
-server.listen(PORT, HOST, () => {
-  logger.info(`🚀 Server running on ${HOST}:${PORT}`);
-  logger.info(`📱 Platform is ready to host Telegram bots!`);
-});
+const startServer = async () => {
+  try {
+    await connectDB();
+    
+    server.listen(PORT, HOST, () => {
+      logger.info(`🚀 Server running on ${HOST}:${PORT}`);
+      logger.info(`📱 Platform is ready to host Telegram bots!`);
+    });
+  } catch (error) {
+    logger.error('Failed to start server:', error);
+    process.exit(1);
+  }
+};
+
+startServer();
 
 server.on('error', (error) => {
   logger.error('Server error:', error);
