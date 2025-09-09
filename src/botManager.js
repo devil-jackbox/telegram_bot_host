@@ -130,7 +130,21 @@ if (botMode === 'webhook') {
   console.log('🌐 Webhook mode enabled:', webhookUrl);
 } else {
   const protectContent = String(process.env.PROTECT_CONTENT || 'false').toLowerCase() === 'true';
-  bot = new TelegramBot(token, { polling: true });
+  // Initialize without polling, ensure webhook is cleared, then start polling to avoid 409 conflicts
+  bot = new TelegramBot(token, { polling: false });
+  (async () => {
+    try {
+      await bot.deleteWebHook({ drop_pending_updates: true });
+    } catch (e) {
+      console.error('❌ Failed clearing webhook (safe to ignore if none set):', e.message || e);
+    }
+    try {
+      await bot.startPolling({ params: { timeout: 10 } });
+      console.log('📡 Polling mode enabled');
+    } catch (e) {
+      console.error('❌ Failed to start polling:', e.message || e);
+    }
+  })();
   if (protectContent) {
     const originalSendMessage = bot.sendMessage.bind(bot);
     bot.sendMessage = (chatId, text, options = {}) => {
@@ -138,7 +152,6 @@ if (botMode === 'webhook') {
       return originalSendMessage(chatId, text, options);
     };
   }
-  console.log('📡 Polling mode enabled');
 }
 
 const processedMessages = new Set();
