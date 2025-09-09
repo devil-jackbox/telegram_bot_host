@@ -1,4 +1,4 @@
-# MongoDB Deployment Guide for Railway
+# MongoDB Deployment Guide for Railway.
 
 This guide explains how to deploy your Telegram Bot Platform with MongoDB persistence on Railway.
 
