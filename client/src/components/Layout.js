@@ -112,20 +112,21 @@ const Layout = ({ children }) => {
                   ) : (
                     <WifiOff size={16} className="text-red-500" />
                   )}
-                  <span className="text-xs sm:text-sm text-gray-500 hidden sm:inline">
+                  <span className="text-xs sm:text-sm text-gray-500">
                     {isConnected ? 'Connected' : 'Disconnected'}
                   </span>
                 </div>
                 <button
                   onClick={toggleConnection}
-                  className={`p-1.5 rounded-md transition-colors ${
+                  className={`px-2 py-1.5 rounded-md transition-colors text-xs font-medium ${
                     connectionEnabled 
                       ? 'bg-green-100 text-green-600 hover:bg-green-200' 
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                   title={connectionEnabled ? 'Disconnect' : 'Connect'}
                 >
-                  <Power size={14} />
+                  <Power size={12} className="inline mr-1" />
+                  <span className="hidden sm:inline">{connectionEnabled ? 'Disconnect' : 'Connect'}</span>
                 </button>
               </div>
             </div>

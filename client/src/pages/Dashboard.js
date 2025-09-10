@@ -166,23 +166,29 @@ const Dashboard = () => {
         ) : (
           <div className="divide-y divide-gray-200">
             {bots.map((bot) => (
-              <div key={bot.id} className="p-4 sm:p-6 hover:bg-gray-50 transition-colors">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="flex items-center space-x-3">
-                    <div className="flex items-center space-x-2">
-                      {getLanguageIcon(bot.language)}
-                      <div>
+              <Link
+                key={bot.id}
+                to={`/bot/${bot.id}`}
+                className="block p-4 sm:p-6 hover:bg-gray-50 transition-colors"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3 min-w-0 flex-1">
+                    <div className="flex items-center space-x-2 min-w-0 flex-1">
+                      <div className="min-w-0 flex-1">
                         <h3 className="text-base sm:text-lg font-medium text-gray-900 truncate">{bot.name}</h3>
-                        <p className="text-xs sm:text-sm text-gray-500 capitalize">{bot.language}</p>
                       </div>
                     </div>
                     {getStatusBadge(bot)}
                   </div>
                   
-                  <div className="flex items-center justify-end space-x-1 sm:space-x-2">
+                  <div className="flex items-center space-x-1 sm:space-x-2 ml-2">
                     {bot.status === 'running' ? (
                       <button
-                        onClick={() => handleStopBot(bot.id)}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleStopBot(bot.id);
+                        }}
                         className="btn-secondary p-2 sm:p-2.5"
                         title="Stop Bot"
                       >
@@ -190,7 +196,11 @@ const Dashboard = () => {
                       </button>
                     ) : (
                       <button
-                        onClick={() => handleStartBot(bot.id)}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleStartBot(bot.id);
+                        }}
                         className="btn-success p-2 sm:p-2.5"
                         title="Start Bot"
                       >
@@ -198,16 +208,12 @@ const Dashboard = () => {
                       </button>
                     )}
                     
-                    <Link
-                      to={`/bot/${bot.id}`}
-                      className="btn-secondary p-2 sm:p-2.5"
-                      title="Edit Bot"
-                    >
-                      <Edit size={14} />
-                    </Link>
-                    
                     <button
-                      onClick={() => handleDeleteBot(bot.id)}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleDeleteBot(bot.id);
+                      }}
                       disabled={deletingBot === bot.id}
                       className="btn-danger p-2 sm:p-2.5"
                       title="Delete Bot"
@@ -220,20 +226,7 @@ const Dashboard = () => {
                     </button>
                   </div>
                 </div>
-                
-                <div className="mt-3 flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-6 text-xs sm:text-sm text-gray-500">
-                  <div className="flex items-center space-x-1">
-                    <Clock size={12} />
-                    <span>Created {new Date(bot.createdAt).toLocaleDateString()}</span>
-                  </div>
-                  {bot.updatedAt && (
-                    <div className="flex items-center space-x-1">
-                      <Edit size={12} />
-                      <span>Updated {new Date(bot.updatedAt).toLocaleDateString()}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
+              </Link>
             ))}
           </div>
         )}

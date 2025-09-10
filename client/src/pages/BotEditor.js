@@ -26,7 +26,7 @@ import { toast } from 'react-hot-toast';
 
 const BotEditor = () => {
   const { botId } = useParams();
-  const { bots, getBot, getBotFile, updateBotFile, startBot, stopBot, updateBot } = useBots();
+  const { bots, getBot, getBotFile, updateBotFile, startBot, stopBot, updateBot, deleteBot } = useBots();
   const { joinBotRoom, leaveBotRoom } = useSocket();
   
   const [code, setCode] = useState('');
@@ -299,6 +299,19 @@ const BotEditor = () => {
     }
   };
 
+  const handleDelete = async () => {
+    if (window.confirm('Are you sure you want to delete this bot? This action cannot be undone.')) {
+      try {
+        await deleteBot(botId);
+        // Navigate back to dashboard after deletion
+        window.location.href = '/';
+      } catch (error) {
+        console.error('Failed to delete bot:', error);
+        toast.error('Failed to delete bot');
+      }
+    }
+  };
+
   const toggleFullscreen = () => {
     setIsFullscreen(!isFullscreen);
   };
@@ -526,37 +539,48 @@ const BotEditor = () => {
             <h1 className="text-lg sm:text-2xl font-bold text-gray-900 truncate">{bot.name}</h1>
             {getStatusBadge()}
           </div>
-          <p className="text-xs sm:text-sm text-gray-600 mt-1">
-            {bot.language} • Created {new Date(bot.createdAt).toLocaleDateString()}
-          </p>
         </div>
         
-        <div className="flex items-center space-x-1 sm:space-x-2">
-          <button
-            onClick={handleSave}
-            disabled={saving || code === originalCode}
-            className="btn-primary text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2"
-          >
-            <Save size={14} />
-            <span className="hidden sm:inline ml-1">{saving ? 'Saving...' : 'Save'}</span>
-          </button>
-          
-          {bot.status === 'running' ? (
-            <button onClick={handleStop} className="btn-secondary text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2">
-              <Square size={14} />
-              <span className="hidden sm:inline ml-1">Stop</span>
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-2">
+          {/* First row: Start/Stop, Restart */}
+          <div className="flex items-center space-x-1 sm:space-x-2">
+            {bot.status === 'running' ? (
+              <button onClick={handleStop} className="btn-secondary text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2">
+                <Square size={14} />
+                <span className="ml-1">Stop</span>
+              </button>
+            ) : (
+              <button onClick={handleStart} className="btn-success text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2">
+                <Play size={14} />
+                <span className="ml-1">Start</span>
+              </button>
+            )}
+            
+            <button onClick={handleRestart} className="btn-secondary text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2">
+              <RotateCcw size={14} />
+              <span className="ml-1">Restart</span>
             </button>
-          ) : (
-            <button onClick={handleStart} className="btn-success text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2">
-              <Play size={14} />
-              <span className="hidden sm:inline ml-1">Start</span>
-            </button>
-          )}
+          </div>
           
-          <button onClick={handleRestart} className="btn-secondary text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2">
-            <RotateCcw size={14} />
-            <span className="hidden sm:inline ml-1">Restart</span>
-          </button>
+          {/* Second row: Save, Delete */}
+          <div className="flex items-center space-x-1 sm:space-x-2">
+            <button
+              onClick={handleSave}
+              disabled={saving || code === originalCode}
+              className="btn-primary text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2"
+            >
+              <Save size={14} />
+              <span className="ml-1">{saving ? 'Saving...' : 'Save'}</span>
+            </button>
+            
+            <button
+              onClick={handleDelete}
+              className="btn-danger text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2"
+            >
+              <Trash2 size={14} />
+              <span className="ml-1">Delete</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -617,7 +641,7 @@ const BotEditor = () => {
       {/* Content */}
       {activeTab === 'editor' && (
         <div className={`card ${isFullscreen ? 'fixed inset-0 z-50 m-0 rounded-none' : ''}`}>
-          <div className={`${isFullscreen ? 'h-full' : 'h-64 sm:h-96'} overflow-hidden relative`}>
+          <div className={`${isFullscreen ? 'h-full' : 'h-80 sm:h-[500px]'} overflow-hidden relative`}>
             {/* Fullscreen toggle button */}
             <button
               onClick={toggleFullscreen}
@@ -713,11 +737,11 @@ const BotEditor = () => {
       )}
 
       {activeTab === 'environment' && (
-        <div className="card p-6">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h3 className="text-lg font-medium text-gray-900">Environment Variables</h3>
-              <p className="text-sm text-gray-600">Configure environment variables for your bot</p>
+        <div className="card p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-4">
+            <div className="min-w-0 flex-1">
+              <h3 className="text-base sm:text-lg font-medium text-gray-900">Environment Variables</h3>
+              <p className="text-xs sm:text-sm text-gray-600">Configure environment variables for your bot</p>
               <div className="flex items-center mt-2">
                 <input
                   type="checkbox"
@@ -726,47 +750,47 @@ const BotEditor = () => {
                   onChange={(e) => setAutoDetectEnabled(e.target.checked)}
                   className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
                 />
-                <label htmlFor="autoDetect" className="ml-2 block text-sm text-gray-700">
+                <label htmlFor="autoDetect" className="ml-2 block text-xs sm:text-sm text-gray-700">
                   Auto-detect variables from code changes
                 </label>
               </div>
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={() => setShowSecrets(!showSecrets)}
-                className="btn-secondary"
+                className="btn-secondary text-xs px-2 py-1.5"
               >
-                {showSecrets ? <EyeOff size={16} /> : <Eye size={16} />}
-                {showSecrets ? 'Hide' : 'Show'} Secrets
+                {showSecrets ? <EyeOff size={14} /> : <Eye size={14} />}
+                <span className="ml-1">{showSecrets ? 'Hide' : 'Show'}</span>
               </button>
               <button
                 onClick={detectEnvironmentVariablesFromCode}
-                className="btn-secondary"
+                className="btn-secondary text-xs px-2 py-1.5"
               >
-                <FileText size={16} />
-                Detect from Code
+                <FileText size={14} />
+                <span className="ml-1 hidden sm:inline">Detect</span>
               </button>
               <button
                 onClick={autoFillEnvironmentVariables}
-                className="btn-secondary"
+                className="btn-secondary text-xs px-2 py-1.5"
               >
-                <RefreshCw size={16} />
-                Auto-fill Defaults
+                <RefreshCw size={14} />
+                <span className="ml-1 hidden sm:inline">Auto-fill</span>
               </button>
               <button
                 onClick={addEnvironmentVariable}
-                className="btn-primary"
+                className="btn-primary text-xs px-2 py-1.5"
               >
-                <Plus size={16} />
-                Add Variable
+                <Plus size={14} />
+                <span className="ml-1">Add</span>
               </button>
             </div>
           </div>
 
           {/* Help Information */}
-          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <h4 className="text-sm font-medium text-blue-900 mb-2">💡 Bot Mode Information</h4>
-            <div className="text-sm text-blue-800 space-y-2">
+          <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <h4 className="text-xs sm:text-sm font-medium text-blue-900 mb-2">💡 Bot Mode Information</h4>
+            <div className="text-xs sm:text-sm text-blue-800 space-y-1 sm:space-y-2">
               <div>
                 <p className="font-medium">📡 Polling Mode (Default):</p>
                 <p>• Bot continuously checks for new messages</p>
@@ -790,7 +814,7 @@ const BotEditor = () => {
             </div>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {environmentVariables.map((envVar, index) => {
               // Check if this variable is used in the current code
               const isUsedInCode = code && (
@@ -801,18 +825,18 @@ const BotEditor = () => {
               );
 
               return (
-                <div key={index} className={`flex items-center space-x-3 p-4 border rounded-lg ${
+                <div key={index} className={`flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 p-3 sm:p-4 border rounded-lg ${
                   isUsedInCode ? 'border-green-200 bg-green-50' : 'border-gray-200'
                 }`}>
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2 mb-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 mb-2">
                       <div className="relative flex-1">
                         <input
                           type="text"
                           placeholder="Variable name (e.g., API_KEY)"
                           value={envVar.key}
                           onChange={(e) => updateEnvironmentVariable(index, 'key', e.target.value)}
-                          className="input"
+                          className="input text-xs sm:text-sm"
                           list={`env-var-${index}`}
                         />
                         <datalist id={`env-var-${index}`}>
@@ -827,17 +851,17 @@ const BotEditor = () => {
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
                       <input
                         type={showSecrets || !envVar.isSecret ? "text" : "password"}
                         placeholder="Variable value"
                         value={envVar.value}
                         onChange={(e) => updateEnvironmentVariable(index, 'value', e.target.value)}
-                        className="input flex-1"
+                        className="input flex-1 text-xs sm:text-sm"
                       />
                       <button
                         onClick={() => updateEnvironmentVariable(index, 'isSecret', !envVar.isSecret)}
-                        className={`px-3 py-2 text-sm rounded-md ${
+                        className={`px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm rounded-md ${
                           envVar.isSecret 
                             ? 'bg-red-100 text-red-700 hover:bg-red-200' 
                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -849,9 +873,9 @@ const BotEditor = () => {
                   </div>
                   <button
                     onClick={() => removeEnvironmentVariable(index)}
-                    className="text-red-600 hover:text-red-800 p-2"
+                    className="text-red-600 hover:text-red-800 p-2 self-start sm:self-center"
                   >
-                    <Trash2 size={16} />
+                    <Trash2 size={14} />
                   </button>
                 </div>
               );
@@ -871,19 +895,19 @@ const BotEditor = () => {
       )}
 
       {activeTab === 'errors' && (
-        <div className="card p-6">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h3 className="text-lg font-medium text-gray-900">Bot Errors</h3>
-              <p className="text-sm text-gray-600">Real-time error logs and debugging information</p>
+        <div className="card p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-4">
+            <div className="min-w-0 flex-1">
+              <h3 className="text-base sm:text-lg font-medium text-gray-900">Bot Errors</h3>
+              <p className="text-xs sm:text-sm text-gray-600">Real-time error logs and debugging information</p>
             </div>
             <div className="flex items-center space-x-2">
               <button
                 onClick={clearErrors}
-                className="btn-secondary"
+                className="btn-secondary text-xs px-2 py-1.5"
               >
-                <RefreshCw size={16} />
-                Clear Errors
+                <RefreshCw size={14} />
+                <span className="ml-1">Clear</span>
               </button>
             </div>
           </div>
@@ -927,9 +951,9 @@ const BotEditor = () => {
       )}
 
       {activeTab === 'settings' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="card p-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Bot Information</h3>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+          <div className="card p-4 sm:p-6">
+            <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-4">Bot Information</h3>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700">Name</label>
@@ -937,17 +961,7 @@ const BotEditor = () => {
                   type="text"
                   value={bot.name}
                   onChange={(e) => setBot({ ...bot, name: e.target.value })}
-                  className="input mt-1"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Language</label>
-                <input
-                  type="text"
-                  value={bot.language}
-                  disabled
-                  className="input mt-1 bg-gray-50"
+                  className="input mt-1 text-xs sm:text-sm"
                 />
               </div>
               
@@ -957,7 +971,7 @@ const BotEditor = () => {
                   type="password"
                   value={bot.token}
                   onChange={(e) => setBot({ ...bot, token: e.target.value })}
-                  className="input mt-1"
+                  className="input mt-1 text-xs sm:text-sm"
                 />
               </div>
               
@@ -969,13 +983,13 @@ const BotEditor = () => {
                   onChange={(e) => setBot({ ...bot, autoStart: e.target.checked })}
                   className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
                 />
-                <label htmlFor="autoStart" className="ml-2 block text-sm text-gray-900">
+                <label htmlFor="autoStart" className="ml-2 block text-xs sm:text-sm text-gray-900">
                   Auto-start on platform launch
                 </label>
               </div>
             </div>
             
-            <div className="mt-6">
+            <div className="mt-4 sm:mt-6">
               <button
                 onClick={async () => {
                   try {
@@ -990,36 +1004,20 @@ const BotEditor = () => {
                     toast.error('Failed to save bot settings');
                   }
                 }}
-                className="btn-primary"
+                className="btn-primary text-xs sm:text-sm px-3 py-2"
               >
                 Save Settings
               </button>
             </div>
           </div>
 
-          <div className="card p-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Bot Status</h3>
-            <div className="space-y-4">
+          <div className="card p-4 sm:p-6">
+            <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-4">Bot Status</h3>
+            <div className="space-y-3 sm:space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Status</span>
+                <span className="text-xs sm:text-sm text-gray-600">Status</span>
                 {getStatusBadge()}
               </div>
-              
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Created</span>
-                <span className="text-sm text-gray-900">
-                  {new Date(bot.createdAt).toLocaleString()}
-                </span>
-              </div>
-              
-              {bot.updatedAt && (
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Last Updated</span>
-                  <span className="text-sm text-gray-900">
-                    {new Date(bot.updatedAt).toLocaleString()}
-                  </span>
-                </div>
-              )}
             </div>
           </div>
         </div>
