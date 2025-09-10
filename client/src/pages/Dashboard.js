@@ -25,7 +25,6 @@ const Dashboard = () => {
 
   const runningBots = bots.filter(bot => bot.status === 'running');
   const stoppedBots = bots.filter(bot => bot.status === 'stopped' || !bot.status);
-  const errorBots = bots.filter(bot => bot.status === 'error');
 
   const handleStartBot = async (botId) => {
     try {
@@ -91,63 +90,55 @@ const Dashboard = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600">Manage your Telegram bots</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Dashboard</h1>
+          <p className="text-sm sm:text-base text-gray-600">Manage your Telegram bots</p>
         </div>
-        <button onClick={() => setShowCreateModal(true)} className="btn-primary">
+        <button 
+          onClick={() => setShowCreateModal(true)} 
+          className="btn-primary w-full sm:w-auto flex items-center justify-center gap-2 py-2.5 px-4 text-sm font-medium"
+        >
           <Plus size={16} />
-          Create Bot
+          <span className="hidden sm:inline">Create Bot</span>
+          <span className="sm:hidden">New Bot</span>
         </button>
       </div>
 
       {/* Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="card p-6">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
+        <div className="card p-4 sm:p-6">
           <div className="flex items-center">
             <div className="p-2 bg-primary-100 rounded-lg">
-              <Bot size={20} className="text-primary-600" />
+              <Bot size={18} className="text-primary-600" />
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Total Bots</p>
-              <p className="text-2xl font-bold text-gray-900">{bots.length}</p>
+            <div className="ml-3">
+              <p className="text-xs sm:text-sm font-medium text-gray-600">Total</p>
+              <p className="text-lg sm:text-2xl font-bold text-gray-900">{bots.length}</p>
             </div>
           </div>
         </div>
 
-        <div className="card p-6">
+        <div className="card p-4 sm:p-6">
           <div className="flex items-center">
             <div className="p-2 bg-green-100 rounded-lg">
-              <Activity size={20} className="text-green-600" />
+              <Activity size={18} className="text-green-600" />
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Running</p>
-              <p className="text-2xl font-bold text-gray-900">{runningBots.length}</p>
+            <div className="ml-3">
+              <p className="text-xs sm:text-sm font-medium text-gray-600">Running</p>
+              <p className="text-lg sm:text-2xl font-bold text-gray-900">{runningBots.length}</p>
             </div>
           </div>
         </div>
 
-        <div className="card p-6">
+        <div className="card p-4 sm:p-6">
           <div className="flex items-center">
             <div className="p-2 bg-yellow-100 rounded-lg">
-              <Clock size={20} className="text-yellow-600" />
+              <Clock size={18} className="text-yellow-600" />
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Stopped</p>
-              <p className="text-2xl font-bold text-gray-900">{stoppedBots.length}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="card p-6">
-          <div className="flex items-center">
-            <div className="p-2 bg-red-100 rounded-lg">
-              <AlertTriangle size={20} className="text-red-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Errors</p>
-              <p className="text-2xl font-bold text-gray-900">{errorBots.length}</p>
+            <div className="ml-3">
+              <p className="text-xs sm:text-sm font-medium text-gray-600">Stopped</p>
+              <p className="text-lg sm:text-2xl font-bold text-gray-900">{stoppedBots.length}</p>
             </div>
           </div>
         </div>
@@ -155,16 +146,19 @@ const Dashboard = () => {
 
       {/* Bots List */}
       <div className="card">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-medium text-gray-900">Your Bots</h2>
+        <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
+          <h2 className="text-base sm:text-lg font-medium text-gray-900">Your Bots</h2>
         </div>
         
         {bots.length === 0 ? (
-          <div className="p-12 text-center">
-            <Bot size={48} className="mx-auto text-gray-400 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No bots yet</h3>
-            <p className="text-gray-600 mb-6">Create your first Telegram bot to get started</p>
-            <button onClick={() => setShowCreateModal(true)} className="btn-primary">
+          <div className="p-8 sm:p-12 text-center">
+            <Bot size={40} className="mx-auto text-gray-400 mb-4" />
+            <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">No bots yet</h3>
+            <p className="text-sm sm:text-base text-gray-600 mb-6">Create your first Telegram bot to get started</p>
+            <button 
+              onClick={() => setShowCreateModal(true)} 
+              className="btn-primary w-full sm:w-auto flex items-center justify-center gap-2 py-2.5 px-4 text-sm font-medium"
+            >
               <Plus size={16} />
               Create Your First Bot
             </button>
@@ -172,69 +166,69 @@ const Dashboard = () => {
         ) : (
           <div className="divide-y divide-gray-200">
             {bots.map((bot) => (
-              <div key={bot.id} className="p-6 hover:bg-gray-50 transition-colors">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
+              <div key={bot.id} className="p-4 sm:p-6 hover:bg-gray-50 transition-colors">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center space-x-3">
                     <div className="flex items-center space-x-2">
                       {getLanguageIcon(bot.language)}
                       <div>
-                        <h3 className="text-lg font-medium text-gray-900">{bot.name}</h3>
-                        <p className="text-sm text-gray-500 capitalize">{bot.language}</p>
+                        <h3 className="text-base sm:text-lg font-medium text-gray-900 truncate">{bot.name}</h3>
+                        <p className="text-xs sm:text-sm text-gray-500 capitalize">{bot.language}</p>
                       </div>
                     </div>
                     {getStatusBadge(bot)}
                   </div>
                   
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center justify-end space-x-1 sm:space-x-2">
                     {bot.status === 'running' ? (
                       <button
                         onClick={() => handleStopBot(bot.id)}
-                        className="btn-secondary"
+                        className="btn-secondary p-2 sm:p-2.5"
                         title="Stop Bot"
                       >
-                        <Square size={16} />
+                        <Square size={14} />
                       </button>
                     ) : (
                       <button
                         onClick={() => handleStartBot(bot.id)}
-                        className="btn-success"
+                        className="btn-success p-2 sm:p-2.5"
                         title="Start Bot"
                       >
-                        <Play size={16} />
+                        <Play size={14} />
                       </button>
                     )}
                     
                     <Link
                       to={`/bot/${bot.id}`}
-                      className="btn-secondary"
+                      className="btn-secondary p-2 sm:p-2.5"
                       title="Edit Bot"
                     >
-                      <Edit size={16} />
+                      <Edit size={14} />
                     </Link>
                     
                     <button
                       onClick={() => handleDeleteBot(bot.id)}
                       disabled={deletingBot === bot.id}
-                      className="btn-danger"
+                      className="btn-danger p-2 sm:p-2.5"
                       title="Delete Bot"
                     >
                       {deletingBot === bot.id ? (
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
                       ) : (
-                        <Trash2 size={16} />
+                        <Trash2 size={14} />
                       )}
                     </button>
                   </div>
                 </div>
                 
-                <div className="mt-4 flex items-center space-x-6 text-sm text-gray-500">
+                <div className="mt-3 flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-6 text-xs sm:text-sm text-gray-500">
                   <div className="flex items-center space-x-1">
-                    <Clock size={14} />
+                    <Clock size={12} />
                     <span>Created {new Date(bot.createdAt).toLocaleDateString()}</span>
                   </div>
                   {bot.updatedAt && (
                     <div className="flex items-center space-x-1">
-                      <Edit size={14} />
+                      <Edit size={12} />
                       <span>Updated {new Date(bot.updatedAt).toLocaleDateString()}</span>
                     </div>
                   )}

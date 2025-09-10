@@ -517,95 +517,99 @@ const BotEditor = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="flex items-center space-x-3">
-            <Link to="/" className="text-primary-600 hover:text-primary-700">
-              ← Back to Dashboard
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center space-x-2 sm:space-x-3">
+            <Link to="/" className="text-primary-600 hover:text-primary-700 text-sm sm:text-base">
+              ← Back
             </Link>
-            <h1 className="text-2xl font-bold text-gray-900">{bot.name}</h1>
+            <h1 className="text-lg sm:text-2xl font-bold text-gray-900 truncate">{bot.name}</h1>
             {getStatusBadge()}
           </div>
-          <p className="text-gray-600 mt-1">
+          <p className="text-xs sm:text-sm text-gray-600 mt-1">
             {bot.language} • Created {new Date(bot.createdAt).toLocaleDateString()}
           </p>
         </div>
         
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-1 sm:space-x-2">
           <button
             onClick={handleSave}
             disabled={saving || code === originalCode}
-            className="btn-primary"
+            className="btn-primary text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2"
           >
-            <Save size={16} />
-            {saving ? 'Saving...' : 'Save'}
+            <Save size={14} />
+            <span className="hidden sm:inline ml-1">{saving ? 'Saving...' : 'Save'}</span>
           </button>
           
           {bot.status === 'running' ? (
-            <button onClick={handleStop} className="btn-secondary">
-              <Square size={16} />
-              Stop
+            <button onClick={handleStop} className="btn-secondary text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2">
+              <Square size={14} />
+              <span className="hidden sm:inline ml-1">Stop</span>
             </button>
           ) : (
-            <button onClick={handleStart} className="btn-success">
-              <Play size={16} />
-              Start
+            <button onClick={handleStart} className="btn-success text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2">
+              <Play size={14} />
+              <span className="hidden sm:inline ml-1">Start</span>
             </button>
           )}
           
-          <button onClick={handleRestart} className="btn-secondary">
-            <RotateCcw size={16} />
-            Restart
+          <button onClick={handleRestart} className="btn-secondary text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2">
+            <RotateCcw size={14} />
+            <span className="hidden sm:inline ml-1">Restart</span>
           </button>
         </div>
       </div>
 
       {/* Tabs */}
       <div className="border-b border-gray-200">
-        <nav className="-mb-px flex space-x-8">
+        <nav className="-mb-px flex space-x-2 sm:space-x-4 overflow-x-auto">
           <button
             onClick={() => setActiveTab('editor')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+            className={`py-2 px-2 sm:px-4 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
               activeTab === 'editor'
                 ? 'border-primary-500 text-primary-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
-            <FileText size={16} className="inline mr-2" />
-            Code Editor
+            <FileText size={14} className="inline mr-1 sm:mr-2" />
+            <span className="hidden sm:inline">Code Editor</span>
+            <span className="sm:hidden">Code</span>
           </button>
           <button
             onClick={() => setActiveTab('environment')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+            className={`py-2 px-2 sm:px-4 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
               activeTab === 'environment'
                 ? 'border-primary-500 text-primary-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
-            <Settings size={16} className="inline mr-2" />
-            Environment Variables
+            <Settings size={14} className="inline mr-1 sm:mr-2" />
+            <span className="hidden sm:inline">Environment Variables</span>
+            <span className="sm:hidden">Env</span>
           </button>
           <button
             onClick={() => setActiveTab('errors')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+            className={`py-2 px-2 sm:px-4 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
               activeTab === 'errors'
                 ? 'border-primary-500 text-primary-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
-            <AlertTriangle size={16} className="inline mr-2" />
-            Errors ({errors.length})
+            <AlertTriangle size={14} className="inline mr-1 sm:mr-2" />
+            <span className="hidden sm:inline">Errors ({errors.length})</span>
+            <span className="sm:hidden">Errors ({errors.length})</span>
           </button>
           <button
             onClick={() => setActiveTab('settings')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+            className={`py-2 px-2 sm:px-4 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
               activeTab === 'settings'
                 ? 'border-primary-500 text-primary-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
-            <Settings size={16} className="inline mr-2" />
-            Settings
+            <Settings size={14} className="inline mr-1 sm:mr-2" />
+            <span className="hidden sm:inline">Settings</span>
+            <span className="sm:hidden">Config</span>
           </button>
         </nav>
       </div>
@@ -613,7 +617,7 @@ const BotEditor = () => {
       {/* Content */}
       {activeTab === 'editor' && (
         <div className={`card ${isFullscreen ? 'fixed inset-0 z-50 m-0 rounded-none' : ''}`}>
-          <div className={`${isFullscreen ? 'h-full' : 'h-96'} overflow-hidden relative`}>
+          <div className={`${isFullscreen ? 'h-full' : 'h-64 sm:h-96'} overflow-hidden relative`}>
             {/* Fullscreen toggle button */}
             <button
               onClick={toggleFullscreen}
