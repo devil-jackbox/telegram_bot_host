@@ -180,51 +180,6 @@ const Dashboard = () => {
                     </div>
                     {getStatusBadge(bot)}
                   </div>
-                  
-                  <div className="flex items-center space-x-1 sm:space-x-2 ml-2">
-                    {bot.status === 'running' ? (
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleStopBot(bot.id);
-                        }}
-                        className="btn-secondary p-2 sm:p-2.5"
-                        title="Stop Bot"
-                      >
-                        <Square size={14} />
-                      </button>
-                    ) : (
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleStartBot(bot.id);
-                        }}
-                        className="btn-success p-2 sm:p-2.5"
-                        title="Start Bot"
-                      >
-                        <Play size={14} />
-                      </button>
-                    )}
-                    
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleDeleteBot(bot.id);
-                      }}
-                      disabled={deletingBot === bot.id}
-                      className="btn-danger p-2 sm:p-2.5"
-                      title="Delete Bot"
-                    >
-                      {deletingBot === bot.id ? (
-                        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
-                      ) : (
-                        <Trash2 size={14} />
-                      )}
-                    </button>
-                  </div>
                 </div>
               </Link>
             ))}

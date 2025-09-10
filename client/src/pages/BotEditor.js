@@ -533,41 +533,38 @@ const BotEditor = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="min-w-0 flex-1">
           <div className="flex items-center space-x-2 sm:space-x-3">
-            <Link to="/" className="text-primary-600 hover:text-primary-700 text-sm sm:text-base">
-              ← Back
-            </Link>
             <h1 className="text-lg sm:text-2xl font-bold text-gray-900 truncate">{bot.name}</h1>
             {getStatusBadge()}
           </div>
         </div>
         
-        <div className="flex flex-col sm:flex-row gap-2 sm:gap-2">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-2 w-full sm:w-auto">
           {/* First row: Start/Stop, Restart */}
-          <div className="flex items-center space-x-1 sm:space-x-2">
+          <div className="flex items-center space-x-1 sm:space-x-2 w-full sm:w-auto">
             {bot.status === 'running' ? (
-              <button onClick={handleStop} className="btn-secondary text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2">
+              <button onClick={handleStop} className="btn-secondary text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2 flex-1 sm:flex-none">
                 <Square size={14} />
                 <span className="ml-1">Stop</span>
               </button>
             ) : (
-              <button onClick={handleStart} className="btn-success text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2">
+              <button onClick={handleStart} className="btn-success text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2 flex-1 sm:flex-none">
                 <Play size={14} />
                 <span className="ml-1">Start</span>
               </button>
             )}
             
-            <button onClick={handleRestart} className="btn-secondary text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2">
+            <button onClick={handleRestart} className="btn-secondary text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2 flex-1 sm:flex-none">
               <RotateCcw size={14} />
               <span className="ml-1">Restart</span>
             </button>
           </div>
           
           {/* Second row: Save, Delete */}
-          <div className="flex items-center space-x-1 sm:space-x-2">
+          <div className="flex items-center space-x-1 sm:space-x-2 w-full sm:w-auto">
             <button
               onClick={handleSave}
               disabled={saving || code === originalCode}
-              className="btn-primary text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2"
+              className="btn-primary text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2 flex-1 sm:flex-none"
             >
               <Save size={14} />
               <span className="ml-1">{saving ? 'Saving...' : 'Save'}</span>
@@ -575,7 +572,7 @@ const BotEditor = () => {
             
             <button
               onClick={handleDelete}
-              className="btn-danger text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2"
+              className="btn-danger text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2 flex-1 sm:flex-none"
             >
               <Trash2 size={14} />
               <span className="ml-1">Delete</span>
@@ -586,10 +583,10 @@ const BotEditor = () => {
 
       {/* Tabs */}
       <div className="border-b border-gray-200">
-        <nav className="-mb-px flex space-x-2 sm:space-x-4 overflow-x-auto">
+        <nav className="-mb-px flex space-x-1 sm:space-x-4 overflow-x-auto">
           <button
             onClick={() => setActiveTab('editor')}
-            className={`py-2 px-2 sm:px-4 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
+            className={`py-2 px-2 sm:px-4 border-b-2 font-medium text-xs sm:text-sm flex-1 sm:flex-none ${
               activeTab === 'editor'
                 ? 'border-primary-500 text-primary-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -601,7 +598,7 @@ const BotEditor = () => {
           </button>
           <button
             onClick={() => setActiveTab('environment')}
-            className={`py-2 px-2 sm:px-4 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
+            className={`py-2 px-2 sm:px-4 border-b-2 font-medium text-xs sm:text-sm flex-1 sm:flex-none ${
               activeTab === 'environment'
                 ? 'border-primary-500 text-primary-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -613,7 +610,7 @@ const BotEditor = () => {
           </button>
           <button
             onClick={() => setActiveTab('errors')}
-            className={`py-2 px-2 sm:px-4 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
+            className={`py-2 px-2 sm:px-4 border-b-2 font-medium text-xs sm:text-sm flex-1 sm:flex-none ${
               activeTab === 'errors'
                 ? 'border-primary-500 text-primary-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -625,7 +622,7 @@ const BotEditor = () => {
           </button>
           <button
             onClick={() => setActiveTab('settings')}
-            className={`py-2 px-2 sm:px-4 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
+            className={`py-2 px-2 sm:px-4 border-b-2 font-medium text-xs sm:text-sm flex-1 sm:flex-none ${
               activeTab === 'settings'
                 ? 'border-primary-500 text-primary-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -755,35 +752,42 @@ const BotEditor = () => {
                 </label>
               </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                onClick={() => setShowSecrets(!showSecrets)}
-                className="btn-secondary text-xs px-2 py-1.5"
-              >
-                {showSecrets ? <EyeOff size={14} /> : <Eye size={14} />}
-                <span className="ml-1">{showSecrets ? 'Hide' : 'Show'}</span>
-              </button>
-              <button
-                onClick={detectEnvironmentVariablesFromCode}
-                className="btn-secondary text-xs px-2 py-1.5"
-              >
-                <FileText size={14} />
-                <span className="ml-1 hidden sm:inline">Detect</span>
-              </button>
-              <button
-                onClick={autoFillEnvironmentVariables}
-                className="btn-secondary text-xs px-2 py-1.5"
-              >
-                <RefreshCw size={14} />
-                <span className="ml-1 hidden sm:inline">Auto-fill</span>
-              </button>
-              <button
-                onClick={addEnvironmentVariable}
-                className="btn-primary text-xs px-2 py-1.5"
-              >
-                <Plus size={14} />
-                <span className="ml-1">Add</span>
-              </button>
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+              {/* First row: Show, Detect, Auto-fill */}
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <button
+                  onClick={() => setShowSecrets(!showSecrets)}
+                  className="btn-secondary text-xs px-2 py-1.5 flex-1 sm:flex-none"
+                >
+                  {showSecrets ? <EyeOff size={14} /> : <Eye size={14} />}
+                  <span className="ml-1">{showSecrets ? 'Hide' : 'Show'}</span>
+                </button>
+                <button
+                  onClick={detectEnvironmentVariablesFromCode}
+                  className="btn-secondary text-xs px-2 py-1.5 flex-1 sm:flex-none"
+                >
+                  <FileText size={14} />
+                  <span className="ml-1">Detect</span>
+                </button>
+                <button
+                  onClick={autoFillEnvironmentVariables}
+                  className="btn-secondary text-xs px-2 py-1.5 flex-1 sm:flex-none"
+                >
+                  <RefreshCw size={14} />
+                  <span className="ml-1">Auto-fill</span>
+                </button>
+              </div>
+              
+              {/* Second row: Add Variable */}
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <button
+                  onClick={addEnvironmentVariable}
+                  className="btn-primary text-xs px-2 py-1.5 w-full sm:w-auto"
+                >
+                  <Plus size={14} />
+                  <span className="ml-1">Add Variable</span>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -882,13 +886,13 @@ const BotEditor = () => {
             })}
           </div>
 
-          <div className="mt-6 flex justify-end">
+          <div className="mt-4 sm:mt-6 flex justify-end">
             <button
               onClick={saveEnvironmentVariables}
-              className="btn-primary"
+              className="btn-primary text-xs sm:text-sm px-3 py-2 w-full sm:w-auto"
             >
-              <Save size={16} />
-              Save Environment Variables
+              <Save size={14} />
+              <span className="ml-1">Save Environment Variables</span>
             </button>
           </div>
         </div>
@@ -904,10 +908,10 @@ const BotEditor = () => {
             <div className="flex items-center space-x-2">
               <button
                 onClick={clearErrors}
-                className="btn-secondary text-xs px-2 py-1.5"
+                className="btn-secondary text-xs px-2 py-1.5 w-full sm:w-auto"
               >
                 <RefreshCw size={14} />
-                <span className="ml-1">Clear</span>
+                <span className="ml-1">Clear Errors</span>
               </button>
             </div>
           </div>
@@ -1004,7 +1008,7 @@ const BotEditor = () => {
                     toast.error('Failed to save bot settings');
                   }
                 }}
-                className="btn-primary text-xs sm:text-sm px-3 py-2"
+                className="btn-primary text-xs sm:text-sm px-3 py-2 w-full sm:w-auto"
               >
                 Save Settings
               </button>
