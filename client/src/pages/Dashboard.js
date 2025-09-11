@@ -107,36 +107,34 @@ const Dashboard = () => {
 
       {/* Statistics */}
       <div className="card p-4 sm:p-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-6 sm:space-x-8">
-            <div className="flex items-center space-x-2">
-              <div className="p-2 bg-primary-100 rounded-lg">
-                <Bot size={18} className="text-primary-600" />
-              </div>
-              <div>
-                <p className="text-xs sm:text-sm font-medium text-gray-600">Total</p>
-                <p className="text-lg sm:text-2xl font-bold text-gray-900">{bots.length}</p>
-              </div>
+        <div className="grid grid-cols-3 divide-x divide-gray-200">
+          <div className="flex items-center justify-center space-x-2 px-2 sm:px-4">
+            <div className="p-2 bg-primary-100 rounded-lg">
+              <Bot size={18} className="text-primary-600" />
             </div>
-
-            <div className="flex items-center space-x-2">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <Activity size={18} className="text-green-600" />
-              </div>
-              <div>
-                <p className="text-xs sm:text-sm font-medium text-gray-600">Running</p>
-                <p className="text-lg sm:text-2xl font-bold text-gray-900">{runningBots.length}</p>
-              </div>
+            <div className="text-center">
+              <p className="text-xs sm:text-sm font-medium text-gray-600">Total</p>
+              <p className="text-lg sm:text-2xl font-bold text-gray-900">{bots.length}</p>
             </div>
+          </div>
 
-            <div className="flex items-center space-x-2">
-              <div className="p-2 bg-yellow-100 rounded-lg">
-                <Clock size={18} className="text-yellow-600" />
-              </div>
-              <div>
-                <p className="text-xs sm:text-sm font-medium text-gray-600">Stopped</p>
-                <p className="text-lg sm:text-2xl font-bold text-gray-900">{stoppedBots.length}</p>
-              </div>
+          <div className="flex items-center justify-center space-x-2 px-2 sm:px-4">
+            <div className="p-2 bg-green-100 rounded-lg">
+              <Activity size={18} className="text-green-600" />
+            </div>
+            <div className="text-center">
+              <p className="text-xs sm:text-sm font-medium text-gray-600">Running</p>
+              <p className="text-lg sm:text-2xl font-bold text-gray-900">{runningBots.length}</p>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-center space-x-2 px-2 sm:px-4">
+            <div className="p-2 bg-yellow-100 rounded-lg">
+              <Clock size={18} className="text-yellow-600" />
+            </div>
+            <div className="text-center">
+              <p className="text-xs sm:text-sm font-medium text-gray-600">Stopped</p>
+              <p className="text-lg sm:text-2xl font-bold text-gray-900">{stoppedBots.length}</p>
             </div>
           </div>
         </div>
