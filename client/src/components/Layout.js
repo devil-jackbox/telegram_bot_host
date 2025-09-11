@@ -8,7 +8,8 @@ import {
   X, 
   Code,
   Activity,
-  AlertTriangle
+  AlertTriangle,
+  Zap
 } from 'lucide-react';
 import { useBots } from '../contexts/BotContext';
 import CreateBotModal from './CreateBotModal';
@@ -84,9 +85,13 @@ const Layout = ({ children }) => {
           <div className="flex flex-1 gap-x-2 self-stretch sm:gap-x-4 lg:gap-x-6">
             <div className="flex flex-1" />
             <div className="flex items-center justify-center">
-              <h1 className="text-lg sm:text-xl font-bold text-gray-900">TeleBot Host</h1>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">TeleBot Host</h1>
             </div>
-            <div className="flex flex-1" />
+            <div className="flex flex-1 justify-end">
+              <div className="p-2 bg-primary-100 rounded-lg">
+                <Zap size={20} className="text-primary-600" />
+              </div>
+            </div>
           </div>
         </div>
 
