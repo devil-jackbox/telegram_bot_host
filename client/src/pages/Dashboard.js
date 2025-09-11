@@ -113,7 +113,7 @@ const Dashboard = () => {
               <Bot size={18} className="text-primary-600" />
             </div>
             <div className="text-center">
-              <p className="text-xs sm:text-sm font-medium text-gray-600">Total</p>
+              <p className="text-xs sm:text-sm font-medium text-gray-600">Total Bots</p>
               <p className="text-lg sm:text-2xl font-bold text-gray-900">{bots.length}</p>
             </div>
           </div>
