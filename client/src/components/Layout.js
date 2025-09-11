@@ -11,11 +11,11 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { useBots } from '../contexts/BotContext';
-import CreateBotModal from './CreateBotModal';
+ 
 
 const Layout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [showCreateModal, setShowCreateModal] = useState(false);
+ 
   const location = useLocation();
   const { bots } = useBots();
 
@@ -102,11 +102,7 @@ const Layout = ({ children }) => {
         </main>
       </div>
 
-      {/* Create bot modal */}
-      <CreateBotModal
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-      />
+      
     </div>
   );
 };

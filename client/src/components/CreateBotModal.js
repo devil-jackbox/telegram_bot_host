@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Bot, Code, FileCode } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useBots } from '../contexts/BotContext';
 
 const CreateBotModal = ({ isOpen, onClose }) => {
@@ -9,9 +9,8 @@ const CreateBotModal = ({ isOpen, onClose }) => {
     code: '',
     autoStart: false
   });
-  const [languages, setLanguages] = useState([]);
   const [loading, setLoading] = useState(false);
-  const { createBot, getSupportedLanguages } = useBots();
+  const { createBot } = useBots();
 
   useEffect(() => {}, [isOpen]);
 
@@ -37,18 +36,6 @@ const CreateBotModal = ({ isOpen, onClose }) => {
       autoStart: false
     });
     onClose();
-  };
-
-  const getLanguageIcon = (language) => {
-    switch (language) {
-      case 'javascript':
-      case 'typescript':
-        return <Code size={16} />;
-      case 'python':
-        return <Bot size={16} />;
-      default:
-        return <FileCode size={16} />;
-    }
   };
 
   if (!isOpen) return null;
