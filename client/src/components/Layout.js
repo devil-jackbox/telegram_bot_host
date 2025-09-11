@@ -73,20 +73,20 @@ const Layout = ({ children }) => {
       <div className="lg:pl-64">
         {/* Top bar */}
         <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-2 border-b border-gray-200 bg-white px-3 shadow-sm sm:gap-x-4 sm:px-4 lg:px-6">
-          <button
-            type="button"
-            className="-m-2 p-2 text-gray-700 lg:hidden"
-            onClick={() => setSidebarOpen(true)}
-          >
-            <Menu size={20} />
-          </button>
-
           <div className="flex items-center justify-between w-full">
-            <div className="w-6 sm:w-8"></div>
+            <button
+              type="button"
+              className="-m-2 p-2 text-gray-700 lg:hidden"
+              onClick={() => setSidebarOpen(true)}
+            >
+              <Menu size={20} />
+            </button>
+            
             <div className="flex items-center justify-center flex-1">
               <h1 className="text-xl sm:text-2xl font-bold text-gray-900">TeleBot Host</h1>
             </div>
-            <div className="w-6 sm:w-8 flex justify-end">
+            
+            <div className="flex justify-end">
               <div className="p-1.5 sm:p-2 bg-primary-100 rounded-lg">
                 <Bot size={16} className="sm:w-5 sm:h-5 text-primary-600" />
               </div>
