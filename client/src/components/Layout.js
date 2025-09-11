@@ -6,38 +6,18 @@ import {
   Settings, 
   Menu, 
   X, 
-  Wifi, 
-  WifiOff,
   Code,
   Activity,
-  AlertTriangle,
-  Power
+  AlertTriangle
 } from 'lucide-react';
-import { useSocket } from '../contexts/SocketContext';
 import { useBots } from '../contexts/BotContext';
 import CreateBotModal from './CreateBotModal';
 
 const Layout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [connectionEnabled, setConnectionEnabled] = useState(true);
   const location = useLocation();
-  const { isConnected, socket } = useSocket();
   const { bots } = useBots();
-
-  const toggleConnection = () => {
-    if (connectionEnabled) {
-      if (socket) {
-        socket.disconnect();
-      }
-      setConnectionEnabled(false);
-    } else {
-      if (socket) {
-        socket.connect();
-      }
-      setConnectionEnabled(true);
-    }
-  };
 
   const navigation = [
     { name: 'Dashboard', href: '/', icon: Home },
@@ -103,33 +83,10 @@ const Layout = ({ children }) => {
 
           <div className="flex flex-1 gap-x-2 self-stretch sm:gap-x-4 lg:gap-x-6">
             <div className="flex flex-1" />
-            <div className="flex items-center gap-x-2 sm:gap-x-4 lg:gap-x-6">
-              {/* Connection status and toggle */}
-              <div className="flex items-center gap-x-2">
-                <div className="flex items-center gap-x-1">
-                  {isConnected ? (
-                    <Wifi size={16} className="text-green-500" />
-                  ) : (
-                    <WifiOff size={16} className="text-red-500" />
-                  )}
-                  <span className="text-xs sm:text-sm text-gray-500">
-                    {isConnected ? 'Connected' : 'Disconnected'}
-                  </span>
-                </div>
-                <button
-                  onClick={toggleConnection}
-                  className={`px-2 py-1.5 rounded-md transition-colors text-xs font-medium ${
-                    connectionEnabled 
-                      ? 'bg-green-100 text-green-600 hover:bg-green-200' 
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                  title={connectionEnabled ? 'Disconnect' : 'Connect'}
-                >
-                  <Power size={12} className="inline mr-1" />
-                  <span className="hidden sm:inline">{connectionEnabled ? 'Disconnect' : 'Connect'}</span>
-                </button>
-              </div>
+            <div className="flex items-center justify-center">
+              <h1 className="text-lg sm:text-xl font-bold text-gray-900">TeleBot Host</h1>
             </div>
+            <div className="flex flex-1" />
           </div>
         </div>
 
