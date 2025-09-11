@@ -10,7 +10,6 @@ import {
   AlertTriangle,
   Settings,
   Activity,
-  Clock,
   Maximize2,
   Minimize2,
   Plus,
@@ -35,10 +34,9 @@ const BotEditor = () => {
   const [saving, setSaving] = useState(false);
   const [bot, setBot] = useState(null);
   const [activeTab, setActiveTab] = useState('editor');
-  const [logs, setLogs] = useState([]);
   const [errors, setErrors] = useState([]);
+  const [logs, setLogs] = useState([]);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [editorInstance, setEditorInstance] = useState(null);
   const [environmentVariables, setEnvironmentVariables] = useState([
     { key: 'BOT_TOKEN', value: '', isSecret: true },
     { key: 'BOT_MODE', value: 'polling', isSecret: false },
@@ -666,7 +664,6 @@ const BotEditor = () => {
                 onChange={setCode}
                 theme="vs-dark"
                 onMount={(editor, monaco) => {
-                  setEditorInstance(editor);
                   // Focus editor when loaded
                   setTimeout(() => {
                     editor.focus();

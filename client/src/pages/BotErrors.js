@@ -4,9 +4,7 @@ import {
   ArrowLeft, 
   RefreshCw, 
   Trash2, 
-  AlertTriangle,
-  Clock,
-  Info
+  AlertTriangle
 } from 'lucide-react';
 import { useBots } from '../contexts/BotContext';
 import { useSocket } from '../contexts/SocketContext';

@@ -3,71 +3,21 @@ import { Link } from 'react-router-dom';
 import CreateBotModal from '../components/CreateBotModal';
 import { 
   Bot, 
-  Play, 
-  Square, 
-  Edit, 
-  Trash2, 
   Activity, 
-  AlertTriangle,
   Clock,
   Code,
-  Plus,
-  BarChart3,
-  Users,
-  MessageSquare
+  Plus
 } from 'lucide-react';
 import { useBots } from '../contexts/BotContext';
 
 const Dashboard = () => {
-  const { bots, loading, startBot, stopBot, deleteBot } = useBots();
-  const [deletingBot, setDeletingBot] = useState(null);
+  const { bots, loading } = useBots();
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   const runningBots = bots.filter(bot => bot.status === 'running');
   const stoppedBots = bots.filter(bot => bot.status === 'stopped' || !bot.status);
 
-  const handleStartBot = async (botId) => {
-    try {
-      await startBot(botId);
-    } catch (error) {
-      console.error('Failed to start bot:', error);
-    }
-  };
-
-  const handleStopBot = async (botId) => {
-    try {
-      await stopBot(botId);
-    } catch (error) {
-      console.error('Failed to stop bot:', error);
-    }
-  };
-
-  const handleDeleteBot = async (botId) => {
-    if (!window.confirm('Are you sure you want to delete this bot? This action cannot be undone.')) {
-      return;
-    }
-
-    setDeletingBot(botId);
-    try {
-      await deleteBot(botId);
-    } catch (error) {
-      console.error('Failed to delete bot:', error);
-    } finally {
-      setDeletingBot(null);
-    }
-  };
-
-  const getLanguageIcon = (language) => {
-    switch (language) {
-      case 'javascript':
-      case 'typescript':
-        return <Code size={16} className="text-yellow-500" />;
-      case 'python':
-        return <Bot size={16} className="text-blue-500" />;
-      default:
-        return <Code size={16} className="text-gray-500" />;
-    }
-  };
+  // Removed unused action handlers and language icon helper
 
   const getStatusBadge = (bot) => {
     if (bot.status === 'running') {
