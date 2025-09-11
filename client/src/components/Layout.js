@@ -82,13 +82,13 @@ const Layout = ({ children }) => {
           </button>
 
           <div className="flex items-center justify-between w-full">
-            <div className="w-8"></div>
+            <div className="w-6 sm:w-8"></div>
             <div className="flex items-center justify-center flex-1">
               <h1 className="text-xl sm:text-2xl font-bold text-gray-900">TeleBot Host</h1>
             </div>
-            <div className="w-8 flex justify-end">
-              <div className="p-2 bg-primary-100 rounded-lg">
-                <Bot size={20} className="text-primary-600" />
+            <div className="w-6 sm:w-8 flex justify-end">
+              <div className="p-1.5 sm:p-2 bg-primary-100 rounded-lg">
+                <Bot size={16} className="sm:w-5 sm:h-5 text-primary-600" />
               </div>
             </div>
           </div>
