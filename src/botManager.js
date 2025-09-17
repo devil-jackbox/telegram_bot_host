@@ -472,24 +472,26 @@ console.log('📝 Use /start to begin chatting!');`;
 
   async stopBot(botId) {
     try {
-      const process = this.botProcesses.get(botId);
-      if (!process) {
+      const child = this.botProcesses.get(botId);
+      if (!child) {
         logger.warn(`Bot ${botId} is not running`);
         return;
       }
 
-      const pid = process.pid;
-      if (pid) {
-        try {
-          process.kill(-pid, 'SIGTERM');
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          try {
-            process.kill(-pid, 'SIGKILL');
-          } catch {}
-        } catch (error) {
-          logger.error(`Error killing process ${pid}:`, error);
-        }
-      }
+      try {
+        // Politely ask the child to exit
+        child.kill('SIGTERM');
+      } catch (e) {}
+
+      // Give it a moment to shut down gracefully
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // If still alive, force kill
+      try {
+        // If the child hasn't exited, this will throw if already dead
+        process.kill(child.pid, 0);
+        child.kill('SIGKILL');
+      } catch (e) {}
 
       this.botProcesses.delete(botId);
       this.addLog(botId, 'info', 'Bot stopped successfully');

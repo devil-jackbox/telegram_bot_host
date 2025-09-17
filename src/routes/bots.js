@@ -80,11 +80,13 @@ router.delete('/:id', async (req, res) => {
   try {
     const botId = req.params.id;
     
+    let success = false;
     if (botManager) {
-      await botManager.stopBot(botId);
+      // Ensure process, in-memory state, DB docs, and files are all cleaned
+      success = await botManager.deleteBot(botId);
+    } else {
+      success = await BotService.deleteBot(botId);
     }
-    
-    const success = await BotService.deleteBot(botId);
     if (!success) {
       return res.status(404).json({ success: false, error: 'Bot not found' });
     }
