@@ -21,15 +21,13 @@
     "dotenv": "^16.3.1",
     "multer": "^1.4.5-lts.1",
     "fs-extra": "^11.1.1",
-    "child_process": "^1.0.2",
     "pm2": "^5.3.0",
     "winston": "^3.10.0",
     "express-rate-limit": "^6.10.0",
     "helmet": "^7.0.0",
     "compression": "^1.7.4",
     "mongodb": "^6.3.0",
-    "mongoose": "^8.0.0",
-    "crypto": "^1.0.1"
+    "mongoose": "^8.0.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
